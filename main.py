@@ -114,7 +114,7 @@ def unpack_papers(papers, aggregate=None):
             assert attr in PAPER_INFO
 
     bags_of_refs, ids, side_info, years, authors, venue = [], [], {}, {}, {}, {}
-    title_cnt = author_cnt = ref_cnt = venue_cnt = one_ref_cnt = 0
+    title_cnt = author_cnt = ref_cnt = venue_cnt = one_ref_cnt = year_cnt = 0
     for paper in papers:
         # Extract ids
         ids.append(paper["id"])
@@ -137,6 +137,10 @@ def unpack_papers(papers, aggregate=None):
             side_info[paper["id"]] = ""
         try:
             years[paper["id"]] = paper["year"]
+            if paper["year"] == None:
+                years[paper["id"]] = -1
+            if paper["year"] != None and paper["year"] > 0:
+                year_cnt += 1
         except KeyError:
             years[paper["id"]] = -1
         try:
@@ -164,8 +168,8 @@ def unpack_papers(papers, aggregate=None):
             aggregated_paper_info = aggregate_paper_info(paper, aggregate)
             side_info[paper["id"]] += ' ' + aggregated_paper_info
 
-    print("Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}, one-reference={}"
-          .format(ref_cnt/len(papers), title_cnt/len(papers), author_cnt/len(papers), venue_cnt/len(papers), one_ref_cnt/len(papers)))
+    print("Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}, year={} one-reference={}"
+          .format(ref_cnt/len(papers), title_cnt/len(papers), author_cnt/len(papers), venue_cnt/len(papers), year_cnt/len(papers), one_ref_cnt/len(papers)))
 
     # bag_of_refs and ids should have corresponding indices
     # In side info the id is the key
@@ -254,7 +258,6 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
 
     print("Finished preparing models:", *ALL_MODELS, sep='\n\t')
 
-    print("Loading data from", path)
     papers = papers_from_files( dataset, n_jobs=4)
     print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)

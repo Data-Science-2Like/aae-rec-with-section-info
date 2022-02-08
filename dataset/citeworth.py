@@ -15,6 +15,7 @@ def rename_key(data, old : str, new :str) -> None:
     for entry in data:
         entry[new] = entry.pop(old)
 
+
 def load_citeworth(path):
     """ Loads a single file """
     print("Loading citworth data from", path)
@@ -28,4 +29,7 @@ def load_citeworth(path):
     rename_key(data, 'outgoing_citations', 'references')
     rename_key(data,'paper_id','id')
 
+    for entry in data:
+        if entry['year'] and entry['year'] != None:
+            entry['year'] = int(entry['year'])
     return data
