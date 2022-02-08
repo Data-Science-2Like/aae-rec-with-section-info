@@ -11,7 +11,7 @@ do
     for DROP in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8
     do
         echo python3 main.py $DATASET_YEAR -d $DATASET -m $THRES -dr $DROP -o $OUTPUT_PREFIX/$DATASET-$DATASET_YEAR-$THRESHOLD-$RUN-$DROP.txt
-        python3 main.py $DATASET_YEAR -d $DATASET -m $THRES -dr $DROP -o $OUTPUT_PREFIX/$DATASET-$DATASET_YEAR-$THRESHOLD-$RUN-$DROP-cond.txt --conditioned_autoencoders
+        CUDA_VISIBLE_DEVICES=3 python3 main.py $DATASET_YEAR -d $DATASET -m $THRES -dr $DROP -o $OUTPUT_PREFIX/$DATASET-$DATASET_YEAR-$THRESHOLD-$RUN-$DROP-cond.txt --conditioned_autoencoders
     done
 done
 exit 0
