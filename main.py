@@ -6,6 +6,8 @@ import glob
 import itertools
 import json
 import os
+from pathlib import Path
+from typing import Optional
 
 from gensim.models.keyedvectors import KeyedVectors
 from joblib import Parallel, delayed
@@ -14,7 +16,7 @@ import models.aae
 models.aae.USE_WANDB = True
 
 from models.aae import AAERecommender, DecodingRecommender
-from models.baselines import Countbased
+from models.baselines import Countbased, RandomBaseline, MostPopular, BM25Baseline
 from models.datasets import Bags
 from models.evaluation import Evaluation
 from models.svd import SVDRecommender
@@ -32,19 +34,21 @@ from dataset.aminer import load_dblp, load_acm
 
 
 
-def log(*print_args, logfile=None):
+def log(*print_args, logfile : Optional[Path] = None) -> None:
     """ Maybe logs the output also in the file `outfile` """
     if logfile:
+        if not logfile.parent.exists():
+            logfile.parent.mkdir(exist_ok=True)
         with open(logfile, 'a') as fhandle:
             print(*print_args, file=fhandle)
     print(*print_args)
 
-DEBUG_LIMIT = None
+DEBUG_LIMIT = 5000
 PAPER_INFO = ['title', 'venue', 'author']
 # Metadata to use
 
 print("Loading keyed vectors") 
-VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+VECTORS = KeyedVectors.load_word2vec_format(str(W2V_PATH), binary=W2V_IS_BINARY)
 print("Done") 
 
 # Hyperparameters
@@ -194,16 +198,17 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     if baselines:
         # Models without metadata
         BASELINES = [
+            BM25Baseline()
             # RandomBaseline(),
-            # MostPopular(),
-            Countbased(),
-            SVDRecommender(1000, use_title=False)
+            #MostPopular(),
+            #Countbased(),
+            #SVDRecommender(1000, use_title=False)
         ]
 
 
         ALL_MODELS += BASELINES
 
-        if not all_metadata:
+        if not all_metadata and False:
             # SVD can use only titles not generic conditions
             ALL_MODELS += [SVDRecommender(1000, use_title=True)]
 
@@ -246,8 +251,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
 
     print("Finished preparing models:", *ALL_MODELS, sep='\n\t')
 
-
-    path = DATA_PATH + ("dblp-ref/" if dataset == "dblp" else "acm.txt")
+    path = str(DATA_PATH.joinpath("dblp-ref/" if dataset =="dblp" else "acm.txt"))
     print("Loading data from", path)
     papers = papers_from_files(path, dataset, n_jobs=4)
     print("Unpacking {} data...".format(dataset))
@@ -267,10 +271,10 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
         print("=" * 78)
         exit(0)
 
-    log("Whole dataset:", logfile=outfile)
-    log(bags, logfile=outfile)
+    log("Whole dataset:", logfile=Path(outfile))
+    log(bags, logfile=Path(outfile))
 
-    evaluation = Evaluation(bags, year, logfile=outfile)
+    evaluation = Evaluation(bags, year, logfile=Path(outfile))
     evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
     with open(outfile, 'a') as fh:
         print("~ Partial List + Titles + Author + Venue", "~" * 42, file=fh)

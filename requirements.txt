@@ -5,3 +5,4 @@ torch
 gensim
 pandas
 docutils
+rank_bm25
