@@ -3,6 +3,7 @@ import json
 
 def load_dblp(path):
     """ Loads a single file """
+    print("Loading dblp data from", path)
     with open(path, 'r') as fhandle:
         obj = [json.loads(line.rstrip('\n')) for line in fhandle]
     return obj
@@ -10,6 +11,7 @@ def load_dblp(path):
 
 def load_acm(path):
     """ Loads a single file """
+    print("Loading acm data from", path)
     with open(path, 'r', encoding="utf8") as fhandle:
         obj = []
         paper = {}

@@ -8,4 +8,8 @@ W2V_IS_BINARY = True
 
 # Set to a folder containing both ACM and DBLP datasets
 # lga Feb 17, 2021: Script exec CWD is now assumed to be repository's root
-DATA_PATH = Path("./aminer/")
+ACM_PATH = Path("./aminer/acm.txt")
+
+DBLP_PATH = Path("./aminer/dblp-ref/")
+
+CITEWORTH_PATH = Path("./citeworth/")

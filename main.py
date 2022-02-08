@@ -24,8 +24,9 @@ from models.vae import VAERecommender
 from models.dae import DAERecommender
 from models.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
-from utils.paths import W2V_PATH, W2V_IS_BINARY, DATA_PATH
+from utils.paths import W2V_PATH, W2V_IS_BINARY, ACM_PATH, CITEWORTH_PATH, DBLP_PATH
 from dataset.aminer import load_dblp, load_acm
+from dataset.citeworth import load_citeworth
 
 # Import log from MPD causes static variables to be loaded (e.g. VECTORS)
 # Instead I copied the log function
@@ -62,15 +63,17 @@ AE_PARAMS = {
 }
 
 
-def papers_from_files(path, dataset, n_jobs=1, debug=False):
+def papers_from_files(dataset, n_jobs=1, debug=False):
     """
     Loads a bunch of files into a list of papers,
     optionally sorted by id
     """
     if dataset == "acm":
-        return load_acm(path)
+        return load_acm(ACM_PATH)
+    elif dataset == "cite":
+        return load_citeworth(CITEWORTH_PATH)
 
-    it = glob.iglob(os.path.join(path, '*.json'))
+    it = glob.iglob(os.path.join(DBLP_PATH, '*.json'))
     if debug:
         print("Debug mode: using only two slices")
         it = itertools.islice(it, 2)
@@ -251,9 +254,8 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
 
     print("Finished preparing models:", *ALL_MODELS, sep='\n\t')
 
-    path = str(DATA_PATH.joinpath("dblp-ref/" if dataset =="dblp" else "acm.txt"))
     print("Loading data from", path)
-    papers = papers_from_files(path, dataset, n_jobs=4)
+    papers = papers_from_files( dataset, n_jobs=4)
     print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)
     del papers
@@ -286,8 +288,8 @@ if __name__ == '__main__':
     parser.add_argument('year', type=int,
                         help='First year of the testing set.')
     parser.add_argument('-d', '--dataset', type=str,
-                        help="Parse the DBLP or ACM dataset", default="dblp",
-                        choices=["dblp", "acm"])
+                        help="Parse the DBLP,Citeworth or ACM dataset", default="acm",
+                        choices=["dblp", "acm", "cite"])
     parser.add_argument('-m', '--min-count', type=int,
                         help='Pruning parameter', default=None)
     parser.add_argument('-o', '--outfile',
