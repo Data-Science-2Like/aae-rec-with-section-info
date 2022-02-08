@@ -12,4 +12,4 @@ ACM_PATH = Path("./aminer/acm.txt")
 
 DBLP_PATH = Path("./aminer/dblp-ref/")
 
-CITEWORTH_PATH = Path("./citeworth/")
+CITEWORTH_PATH = Path("./citeworth/aae_recommender_with_section_info_v1.jsonl")
