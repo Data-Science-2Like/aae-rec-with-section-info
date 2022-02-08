@@ -12,11 +12,11 @@ import scipy.sparse as sp
 from models import rank_metrics as rm
 from models.datasets import corrupt_sets
 from models.transforms import lists2sparse
-try:
-    import wandb
-    wandb_is_available = True
-except ImportError:
-    wandb_is_available = False
+#try:
+#    import wandb
+#    wandb_is_available = True
+#except ImportError:
+#    wandb_is_available = False
 
 
 def argtopk(X, k):
@@ -342,17 +342,17 @@ class Evaluation(object):
             sp.save_npz(gold_path, self.y_test)
 
         for recommender in recommenders:
-            if wandb_is_available:
-                run = wandb.init(project="aaerec", reinit=True)
-                wandb.config.dataset = self.dataset
-                wandb.config.year = self.year
-                wandb.config.min_elements = self.min_elements
-                wandb.config.max_features = self.max_features
-                wandb.config.min_count = self.min_count
-                wandb.config.drop = self.drop
-                wandb.config.model_class = recommender.__class__.__name__
-                for attr, value in vars(recommender).items():
-                    setattr(wandb.config, attr, value)
+            # if wandb_is_available:
+            #     run = wandb.init(project="aaerec", reinit=True)
+            #     wandb.config.dataset = self.dataset
+            #     wandb.config.year = self.year
+            #     wandb.config.min_elements = self.min_elements
+            #     wandb.config.max_features = self.max_features
+            #     wandb.config.min_count = self.min_count
+            #     wandb.config.drop = self.drop
+            #     wandb.config.model_class = recommender.__class__.__name__
+            #     for attr, value in vars(recommender).items():
+            #         setattr(wandb.config, attr, value)
             log_fh = maybe_open(self.logfile)
             print(recommender, file=log_fh)
             maybe_close(log_fh)
@@ -360,7 +360,7 @@ class Evaluation(object):
             test_set = self.test_set.clone()
             t_0 = timer()
             recommender.train(train_set)
-            log_fh = maybe_open(self.logfile)
+            # log_fh = maybe_open(self.logfile)
             print("Training took {} seconds."
                   .format(timedelta(seconds=timer()-t_0)), file=log_fh)
 
@@ -395,15 +395,15 @@ class Evaluation(object):
             for metric, (mean, std) in zip(self.metrics, results):
                 print("- {}: {} ({})".format(metric, mean, std),
                       file=log_fh)
-                if wandb_is_available:
-                    wandb.log({metric: mean, metric+"-SD": std})
+                #if wandb_is_available:
+                #    wandb.log({metric: mean, metric+"-SD": std})
 
             print("\nOverall time: {} seconds."
                   .format(timedelta(seconds=timer()-t_0)), file=log_fh)
             print('-' * 79, file=log_fh)
             maybe_close(log_fh)
-            if wandb_is_available:
-                run.finish()
+            #if wandb_is_available:
+            #    run.finish()
 
 
 if __name__ == '__main__':
