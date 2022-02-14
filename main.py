@@ -13,7 +13,7 @@ from gensim.models.keyedvectors import KeyedVectors
 from joblib import Parallel, delayed
 
 import models.aae
-models.aae.USE_WANDB = True
+models.aae.USE_WANDB = False
 
 from models.aae import AAERecommender, DecodingRecommender
 # from models.baselines import Countbased, RandomBaseline, MostPopular, BM25Baseline

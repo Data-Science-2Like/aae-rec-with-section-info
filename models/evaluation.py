@@ -360,7 +360,7 @@ class Evaluation(object):
             test_set = self.test_set.clone()
             t_0 = timer()
             recommender.train(train_set)
-            # log_fh = maybe_open(self.logfile)
+            log_fh = maybe_open(self.logfile)
             print("Training took {} seconds."
                   .format(timedelta(seconds=timer()-t_0)), file=log_fh)
 
