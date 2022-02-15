@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-_private_logfile = None
+LOGFILE = None
 
 
 def log(*print_args, logfile : Optional[Path] = None) -> None:
@@ -11,9 +11,9 @@ def log(*print_args, logfile : Optional[Path] = None) -> None:
             logfile.parent.mkdir(exist_ok=True, parents=True)
         with open(logfile, 'a') as f:
             print(*print_args, file=f)
-    if _private_logfile:
-        if not _private_logfile.parent.exists():
-            _private_logfile.parent.mkdir(exist_ok=True, parents=True)
+    if LOGFILE:
+        if not LOGFILE.parent.exists():
+            LOGFILE.parent.mkdir(exist_ok=True, parents=True)
         with open(logfile, 'a') as f:
             print(*print_args, file=f)
     print(*print_args)

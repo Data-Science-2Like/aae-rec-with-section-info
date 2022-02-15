@@ -27,7 +27,9 @@ from utils.paths import W2V_PATH, W2V_IS_BINARY, ACM_PATH, CITEWORTH_PATH, DBLP_
 from dataset.aminer import load_dblp, load_acm
 from dataset.citeworth import load_citeworth
 
-from utils.log import log, _private_logfile
+from utils.log import log
+import utils.log
+
 # Import log from MPD causes static variables to be loaded (e.g. VECTORS)
 # Instead I copied the log function
 # from eval.mpd.mpd import log
@@ -326,7 +328,7 @@ if __name__ == '__main__':
     except ValueError:
         drop = float(args.drop)
 
-    _private_logfile = Path(args.outfile)
+    utils.log.LOGFILE = Path(args.outfile)
 
     main(year=args.year, dataset=args.dataset, min_count=args.min_count, outfile=args.outfile, drop=drop,
             all_metadata=args.all_metadata,
