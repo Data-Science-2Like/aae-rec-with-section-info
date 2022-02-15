@@ -4,10 +4,6 @@ from typing import Optional
 _private_logfile = None
 
 
-def set_logfile(logfile: Path) -> None:
-    _private_logfile = logfile
-
-
 def log(*print_args, logfile : Optional[Path] = None) -> None:
     """ Maybe logs the output also in the file `outfile` """
     if logfile:
