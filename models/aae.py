@@ -29,12 +29,6 @@ TINY = 1e-12
 
 STATUS_FORMAT = "[ R: {:.4f} | D: {:.4f} | G: {:.4f} ]"
 
-try:
-    import wandb
-    USE_WANDB = False
-except ImportError:
-    USE_WANDB = False
-
 
 
 def assert_condition_callabilities(conditions):
@@ -333,9 +327,7 @@ class AutoEncoder():
         self.train()
         # One step each, could balance
         recon_loss = self.ae_step(X, condition_data=condition_data)
-        #if USE_WANDB:
-        #    assert step is not None
-        #    wandb.log({"step": step, "loss": recon_loss})
+
         if self.verbose:
             log_losses(recon_loss, 0, 0)
         return self
@@ -506,9 +498,7 @@ class DecodingRecommender(Recommender):
         loss.backward()
         self.mlp_optim.step()
         self.conditions.step()
-        #if USE_WANDB:
-        #    assert step is not None
-        #    wandb.log({"step": step, "loss": loss.item()})
+
         if self.verbose:
             print("\rLoss: {}".format(loss.data.item()), flush=True, end='')
         return self
@@ -757,9 +747,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         gen_loss = self.gen_step(X)
         if self.verbose:
             log_losses(recon_loss, disc_loss, gen_loss)
-        #if USE_WANDB:
-        #    assert step is not None
-        #    wandb.log({"step": step, "loss": recon_loss, "disc_loss": disc_loss, "gen_loss": gen_loss})
+
         return self
 
     def fit(self, X, y=None, condition_data=None):

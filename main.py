@@ -13,7 +13,6 @@ from gensim.models.keyedvectors import KeyedVectors
 from joblib import Parallel, delayed
 
 import models.aae
-models.aae.USE_WANDB = False
 
 from models.aae import AAERecommender, DecodingRecommender
 # from models.baselines import Countbased, RandomBaseline, MostPopular, BM25Baseline
@@ -28,21 +27,13 @@ from utils.paths import W2V_PATH, W2V_IS_BINARY, ACM_PATH, CITEWORTH_PATH, DBLP_
 from dataset.aminer import load_dblp, load_acm
 from dataset.citeworth import load_citeworth
 
+from utils.log import log, set_logfile
 # Import log from MPD causes static variables to be loaded (e.g. VECTORS)
 # Instead I copied the log function
 # from eval.mpd.mpd import log
 
 
 
-
-def log(*print_args, logfile : Optional[Path] = None) -> None:
-    """ Maybe logs the output also in the file `outfile` """
-    if logfile:
-        if not logfile.parent.exists():
-            logfile.parent.mkdir(exist_ok=True)
-        with open(logfile, 'a') as fhandle:
-            print(*print_args, file=fhandle)
-    print(*print_args)
 
 DEBUG_LIMIT = 5000
 PAPER_INFO = ['title', 'venue', 'author']
@@ -168,7 +159,7 @@ def unpack_papers(papers, aggregate=None):
             aggregated_paper_info = aggregate_paper_info(paper, aggregate)
             side_info[paper["id"]] += ' ' + aggregated_paper_info
 
-    print("Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}, year={} one-reference={}"
+    log("Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}, year={} one-reference={}"
           .format(ref_cnt/len(papers), title_cnt/len(papers), author_cnt/len(papers), venue_cnt/len(papers), year_cnt/len(papers), one_ref_cnt/len(papers)))
 
     # bag_of_refs and ids should have corresponding indices
@@ -317,6 +308,8 @@ if __name__ == '__main__':
         drop = int(args.drop)
     except ValueError:
         drop = float(args.drop)
+
+    set_logfile(Path(args.outfile))
 
     main(year=args.year, dataset=args.dataset, min_count=args.min_count, outfile=args.outfile, drop=drop,
             all_metadata=args.all_metadata,

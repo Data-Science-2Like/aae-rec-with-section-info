@@ -12,11 +12,8 @@ import scipy.sparse as sp
 from models import rank_metrics as rm
 from models.datasets import corrupt_sets
 from models.transforms import lists2sparse
-#try:
-#    import wandb
-#    wandb_is_available = True
-#except ImportError:
-#    wandb_is_available = False
+
+from utils.log import log
 
 
 def argtopk(X, k):
@@ -248,20 +245,6 @@ def reevaluate(gold_file, predictions_file, metrics):
     Y_pred = np.load(predictions_file)
     return evaluate(Y_test, Y_pred, metrics)
 
-
-def maybe_open(logfile, mode='a'):
-    """
-    If logfile is something that can be opened, do so else return STDOUT
-    """
-    return open(logfile, mode) if logfile else sys.stdout
-
-
-def maybe_close(log_fh):
-    """ Close if log_fh is not STDOUT """
-    if log_fh is not sys.stdout:
-        log_fh.close()
-
-
 class Evaluation(object):
     def __init__(self,
                  dataset,
@@ -288,17 +271,16 @@ class Evaluation(object):
 
         # we could specify split criterion and drop choice here
         """ Splits and corrupts the data accordion to criterion """
-        log_fh = maybe_open(self.logfile)
         random.seed(seed)
         np.random.seed(seed)
         # train_set, test_set = self.dataset.split(self.split_test,
         #                                          self.split_train)
         train_set, test_set = self.dataset.train_test_split(on_year=self.year)
-        print("=" * 80, file=log_fh)
-        print("Train:", train_set, file=log_fh)
-        print("Test:", test_set, file=log_fh)
-        print("Next Pruning:\n\tmin_count: {}\n\tmax_features: {}\n\tmin_elements: {}"
-              .format(min_count, max_features, min_elements), file=log_fh)
+        log("=" * 80)
+        log("Train:", train_set)
+        log("Test:", test_set)
+        log("Next Pruning:\n\tmin_count: {}\n\tmax_features: {}\n\tmin_elements: {}"
+              .format(min_count, max_features, min_elements))
         train_set = train_set.build_vocab(min_count=min_count,
                                           max_features=max_features,
                                           apply=True)
@@ -306,18 +288,17 @@ class Evaluation(object):
         # Train and test sets are now BagsWithVocab
         train_set.prune_(min_elements=min_elements)
         test_set.prune_(min_elements=min_elements)
-        print("Train:", train_set, file=log_fh)
-        print("Test:", test_set, file=log_fh)
-        print("Drop parameter:", drop)
-        print("Drop parameter:", drop, file=log_fh)
+        log("Train:", train_set)
+        log("Test:", test_set)
+        log("Drop parameter:", drop)
+        log("Drop parameter:", drop)
 
         noisy, missing = corrupt_sets(test_set.data, drop=drop)
 
         assert len(noisy) == len(missing) == len(test_set)
 
         test_set.data = noisy
-        print("-" * 80, file=log_fh)
-        maybe_close(log_fh)
+        log("-" * 80)
 
         # THE GOLD
         self.y_test = lists2sparse(missing, test_set.size(1)).tocsr(copy=False)
@@ -342,27 +323,14 @@ class Evaluation(object):
             sp.save_npz(gold_path, self.y_test)
 
         for recommender in recommenders:
-            # if wandb_is_available:
-            #     run = wandb.init(project="aaerec", reinit=True)
-            #     wandb.config.dataset = self.dataset
-            #     wandb.config.year = self.year
-            #     wandb.config.min_elements = self.min_elements
-            #     wandb.config.max_features = self.max_features
-            #     wandb.config.min_count = self.min_count
-            #     wandb.config.drop = self.drop
-            #     wandb.config.model_class = recommender.__class__.__name__
-            #     for attr, value in vars(recommender).items():
-            #         setattr(wandb.config, attr, value)
-            log_fh = maybe_open(self.logfile)
-            print(recommender, file=log_fh)
-            maybe_close(log_fh)
+
+            log(recommender)
             train_set = self.train_set.clone()
             test_set = self.test_set.clone()
             t_0 = timer()
             recommender.train(train_set)
-            log_fh = maybe_open(self.logfile)
-            print("Training took {} seconds."
-                  .format(timedelta(seconds=timer()-t_0)), file=log_fh)
+            log("Training took {} seconds."
+                  .format(timedelta(seconds=timer()-t_0)))
 
             t_1 = timer()
             y_pred = recommender.predict(test_set)
@@ -376,35 +344,28 @@ class Evaluation(object):
             # they don't influence evaluation
             y_pred = remove_non_missing(y_pred, self.x_test, copy=True)
 
-            print("Prediction took {} seconds."
-                  .format(timedelta(seconds=timer()-t_1)), file=log_fh)
+            log("Prediction took {} seconds."
+                  .format(timedelta(seconds=timer()-t_1)))
 
             if self.logdir:
                 t_1 = timer()
                 pred_file = os.path.join(self.logdir, repr(recommender))
                 np.save(pred_file, y_pred)
-                print("Storing predictions took {} seconds."
-                      .format(timedelta(seconds=timer()-t_1)), file=log_fh)
+                log("Storing predictions took {} seconds."
+                      .format(timedelta(seconds=timer()-t_1)))
 
             t_1 = timer()
             results = evaluate(self.y_test, y_pred, metrics=self.metrics, batch_size=batch_size)
-            print("Evaluation took {} seconds."
-                  .format(timedelta(seconds=timer()-t_1)), file=log_fh)
+            log("Evaluation took {} seconds."
+                  .format(timedelta(seconds=timer()-t_1)))
 
-            print("\nResults:\n", file=log_fh)
+            log("\nResults:\n")
             for metric, (mean, std) in zip(self.metrics, results):
-                print("- {}: {} ({})".format(metric, mean, std),
-                      file=log_fh)
-                #if wandb_is_available:
-                #    wandb.log({metric: mean, metric+"-SD": std})
+                log("- {}: {} ({})".format(metric, mean, std))
 
-            print("\nOverall time: {} seconds."
-                  .format(timedelta(seconds=timer()-t_0)), file=log_fh)
-            print('-' * 79, file=log_fh)
-            maybe_close(log_fh)
-            #if wandb_is_available:
-            #    run.finish()
-
+            log("\nOverall time: {} seconds."
+                  .format(timedelta(seconds=timer()-t_0)))
+            log('-' * 79)
 
 if __name__ == '__main__':
     import doctest

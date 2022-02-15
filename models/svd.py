@@ -6,11 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from models.base import Recommender
 from models.ub import AutoEncoderMixin
 
-try:
-    import wandb
-    USE_WANDB = True
-except ImportError:
-    USE_WANDB = False
+
 
 class SVDRecommender(Recommender, AutoEncoderMixin):
     """ SVD Baseline, capable of dealing with text """
