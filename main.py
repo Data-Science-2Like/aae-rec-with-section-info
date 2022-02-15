@@ -272,8 +272,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
 
     evaluation = Evaluation(bags, year, logfile=Path(outfile))
     evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
-    with open(outfile, 'a') as fh:
-        print("~ Partial List + Titles + Author + Venue", "~" * 42, file=fh)
+    log("~ Partial List + Titles + Author + Venue", "~" * 42)
     evaluation(ALL_MODELS, batch_size=1000)
 
 
