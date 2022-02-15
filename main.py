@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 from typing import Optional
+from random import shuffle
 
 from gensim.models.keyedvectors import KeyedVectors
 from joblib import Parallel, delayed
@@ -54,6 +55,13 @@ AE_PARAMS = {
     'n_hidden': 100,
     'normalize_inputs': True,
 }
+
+def drop_paper_percentage(papers, percentage=0.5):
+    shuffle(papers)
+    count = int(len(papers) * percentage)
+    if not count: return []
+    papers[-count:], removed = [], papers[-count:]
+    return removed
 
 
 def papers_from_files(dataset, n_jobs=1, debug=False):
@@ -269,6 +277,11 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     print("Finished preparing models:", *ALL_MODELS, sep='\n\t')
 
     papers = papers_from_files( dataset, n_jobs=4)
+
+    removing = 0.8
+    print("Too much entries. Removing {}% of entries".format(removing*100))
+    drop_paper_percentage(papers,removing)
+
     print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)
     del papers
