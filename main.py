@@ -104,8 +104,8 @@ def unpack_papers(papers, aggregate=None):
         for attr in aggregate:
             assert attr in PAPER_INFO
 
-    bags_of_refs, ids, side_info, years, authors, venue = [], [], {}, {}, {}, {}
-    title_cnt = author_cnt = ref_cnt = venue_cnt = one_ref_cnt = year_cnt = 0
+    bags_of_refs, ids, side_info, years, authors, venue, sections = [], [], {}, {}, {}, {}, {}
+    title_cnt = author_cnt = ref_cnt = venue_cnt = one_ref_cnt = year_cnt = section_cnt =  0
     for paper in papers:
         # Extract ids
         ids.append(paper["id"])
@@ -142,6 +142,10 @@ def unpack_papers(papers, aggregate=None):
             venue[paper["id"]] = paper["venue"]
         except KeyError:
             venue[paper["id"]] = ""
+        try:
+            sections[paper["id"]] = paper["section_title"]
+        except KeyError:
+            sections[paper["id"]] = []
 
         try:
             if len(paper["authors"]) > 0:
@@ -154,25 +158,32 @@ def unpack_papers(papers, aggregate=None):
         except KeyError:
             pass
 
+        try:
+            if len(paper["section_title"]) > 0:
+                section_cnt += 1
+        except KeyError:
+            pass
+
         # We could assemble even more side info here from the track names
         if aggregate is not None:
             aggregated_paper_info = aggregate_paper_info(paper, aggregate)
             side_info[paper["id"]] += ' ' + aggregated_paper_info
 
-    log("Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}, year={} one-reference={}"
-          .format(ref_cnt/len(papers), title_cnt/len(papers), author_cnt/len(papers), venue_cnt/len(papers), year_cnt/len(papers), one_ref_cnt/len(papers)))
+    log("Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}, year={}, sections={} one-reference={}"
+          .format(ref_cnt/len(papers), title_cnt/len(papers), author_cnt/len(papers), venue_cnt/len(papers), year_cnt/len(papers), section_cnt/len(papers), one_ref_cnt/len(papers)))
 
     # bag_of_refs and ids should have corresponding indices
     # In side info the id is the key
     # Re-use 'title' and year here because methods rely on it
-    return bags_of_refs, ids, {"title": side_info, "year": years, "author": authors, "venue": venue}
+    return bags_of_refs, ids, {"title": side_info, "year": years, "author": authors, "venue": venue, "section_title" : sections }
 
 
 def main(year, dataset, min_count=None, outfile=None, drop=1,
         baselines=False,
         autoencoders=False,
         conditioned_autoencoders=False,
-        all_metadata=True):
+        all_metadata=True,
+        use_section=False):
     """ Main function for training and evaluating AAE methods on DBLP data """
 
     assert baselines or autoencoders or conditioned_autoencoders, "Please specify what to run"
@@ -186,9 +197,15 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
             ('author', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
                                             sparse=False, embedding_on_gpu=True))
         ])
-    else:
+    elif not use_section:
         # V1 - only title metadata
         CONDITIONS = ConditionList([('title', PretrainedWordEmbeddingCondition(VECTORS))])
+    else:
+        CONDITIONS = ConditionList([
+            ('title', PretrainedWordEmbeddingCondition(VECTORS)),
+            #('section_title', PretrainedWordEmbeddingCondition(VECTORS))
+            ('section_title', CategoricalCondition(embedding_dim=32, reduce='sum', sparse=False, embedding_on_gpu=True))
+        ])
     #### CONDITOINS defined
 
     ALL_MODELS = []
@@ -237,12 +254,12 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
                            conditions=CONDITIONS,
                            gen_lr=0.001,
                            reg_lr=0.001,
-                            **AE_PARAMS),
-            DecodingRecommender(CONDITIONS,
-                                n_epochs=100, batch_size=1000, optimizer='adam',
-                                n_hidden=100, lr=0.001, verbose=True),
-            VAERecommender(conditions=CONDITIONS, **AE_PARAMS),
-            DAERecommender(conditions=CONDITIONS, **AE_PARAMS)
+                            **AE_PARAMS)
+            #DecodingRecommender(CONDITIONS,
+            #                    n_epochs=100, batch_size=1000, optimizer='adam',
+            #                    n_hidden=100, lr=0.001, verbose=True),
+            #VAERecommender(conditions=CONDITIONS, **AE_PARAMS),
+            #DAERecommender(conditions=CONDITIONS, **AE_PARAMS)
         ]
         ALL_MODELS += CONDITIONED_AUTOENCODERS
 
@@ -267,8 +284,8 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
         print("=" * 78)
         exit(0)
 
-    log("Whole dataset:", logfile=Path(outfile))
-    log(bags, logfile=Path(outfile))
+    log("Whole dataset:")
+    log(bags)
 
     evaluation = Evaluation(bags, year, logfile=Path(outfile))
     evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
@@ -300,6 +317,7 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument('--conditioned_autoencoders', default=False,
                         action='store_true')
+    parser.add_argument('--use_section', default=False, action='store_true')
     args = parser.parse_args()
 
     # Drop could also be a callable according to evaluation.py but not managed as input parameter
@@ -314,4 +332,5 @@ if __name__ == '__main__':
             all_metadata=args.all_metadata,
             baselines=args.baselines,
             autoencoders=args.autoencoders,
-            conditioned_autoencoders=args.conditioned_autoencoders)
+            conditioned_autoencoders=args.conditioned_autoencoders,
+            use_section=args.use_section)
