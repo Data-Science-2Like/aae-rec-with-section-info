@@ -49,7 +49,7 @@ print("Done")
 # Hyperparameters
 AE_PARAMS = {
     'n_code': 50,
-    'n_epochs': 5,
+    'n_epochs': 20,
 #    'embedding': VECTORS,
     'batch_size': 10000,
     'n_hidden': 100,
@@ -278,9 +278,9 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
 
     papers = papers_from_files( dataset, n_jobs=4)
 
-    removing = 0.8
-    print("Too much entries. Removing {}% of entries".format(removing*100))
-    drop_paper_percentage(papers,removing)
+    #removing = 0.5
+    #print("Too much entries. Removing {}% of entries".format(removing*100))
+    #drop_paper_percentage(papers,removing)
 
     print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)
