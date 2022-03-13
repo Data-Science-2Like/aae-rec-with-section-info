@@ -49,9 +49,9 @@ print("Done")
 # Hyperparameters
 AE_PARAMS = {
     'n_code': 50,
-    'n_epochs': 20,
+    'n_epochs': 1,
 #    'embedding': VECTORS,
-    'batch_size': 10000,
+    'batch_size': 500,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -260,11 +260,11 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
                            conditions=CONDITIONS,
                            lr=0.001,
                            **AE_PARAMS),
-            AAERecommender(adversarial=True,
-                           conditions=CONDITIONS,
-                           gen_lr=0.001,
-                           reg_lr=0.001,
-                            **AE_PARAMS)
+            #AAERecommender(adversarial=True,
+            #               conditions=CONDITIONS,
+            #               gen_lr=0.001,
+            #               reg_lr=0.001,
+            #                **AE_PARAMS)
             #DecodingRecommender(CONDITIONS,
             #                    n_epochs=100, batch_size=1000, optimizer='adam',
             #                    n_hidden=100, lr=0.001, verbose=True),

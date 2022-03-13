@@ -2,12 +2,12 @@ from timeit import default_timer as timer
 from datetime import timedelta
 import os
 import random
+import torch
 import sys
 from abc import ABC, abstractmethod
 from sklearn.preprocessing import minmax_scale
 import numpy as np
 import scipy.sparse as sp
-
 
 from models import rank_metrics as rm
 from models.datasets import corrupt_sets
@@ -49,7 +49,6 @@ def argtopk(X, k):
         return rows, ind
 
     assert k > 0, "k should be positive integer or None"
-
 
     ind = np.argpartition(X, -k, axis=1)[:, -k:]
     # sort indices depending on their X values
@@ -105,6 +104,7 @@ class MRR(RankingMetric):
     >>> MRR(3)(Y_true, Y_pred)
     (1.0, 0.0)
     """
+
     def __init__(self, k=None):
         super().__init__(k=k)
 
@@ -116,6 +116,7 @@ class MRR(RankingMetric):
 
 class MAP(RankingMetric):
     """ Mean average precision at k """
+
     def __init__(self, k=None):
         super().__init__(k=k)
 
@@ -162,6 +163,7 @@ class P(RankingMetric):
         else:
             return ps
 
+
 BOUNDED_METRICS = {
     # (bounded) ranking metrics
     '{}@{}'.format(M.__name__.lower(), k): M(k)
@@ -169,14 +171,13 @@ BOUNDED_METRICS = {
 }
 BOUNDED_METRICS['P@1'] = P(1)
 
-
 UNBOUNDED_METRICS = {
     # unbounded metrics
     M.__name__.lower(): M()
     for M in [MRR, MAP]
 }
 
-METRICS = { **BOUNDED_METRICS, **UNBOUNDED_METRICS }
+METRICS = {**BOUNDED_METRICS, **UNBOUNDED_METRICS}
 
 
 def remove_non_missing(Y_pred, X_test, copy=True):
@@ -245,6 +246,7 @@ def reevaluate(gold_file, predictions_file, metrics):
     Y_pred = np.load(predictions_file)
     return evaluate(Y_test, Y_pred, metrics)
 
+
 class Evaluation(object):
     def __init__(self,
                  dataset,
@@ -280,7 +282,7 @@ class Evaluation(object):
         log("Train:", train_set)
         log("Test:", test_set)
         log("Next Pruning:\n\tmin_count: {}\n\tmax_features: {}\n\tmin_elements: {}"
-              .format(min_count, max_features, min_elements))
+            .format(min_count, max_features, min_elements))
         train_set = train_set.build_vocab(min_count=min_count,
                                           max_features=max_features,
                                           apply=True)
@@ -330,43 +332,83 @@ class Evaluation(object):
             t_0 = timer()
             recommender.train(train_set)
             log("Training took {} seconds."
-                  .format(timedelta(seconds=timer()-t_0)))
-
+                .format(timedelta(seconds=timer() - t_0)))
+            # torch.save(recommender.state_dict(), "1epoch_test.model")
+            split_metrics_calculation = True
             t_1 = timer()
-            y_pred = recommender.predict(test_set)
-            if sp.issparse(y_pred):
-                y_pred = y_pred.toarray()
+            total_result = None
+            if split_metrics_calculation:
+                for start in range(0, len(test_set), batch_size):
+                    end = start + batch_size
+                    batch = test_set[start:end].toarray()
+                    y_pred = recommender.predict(batch)
+                    if sp.issparse(y_pred):
+                        y_pred = y_pred.toarray()
+                    else:
+                        # dont hide that we are assuming an ndarray to be returned
+                        y_pred = np.asarray(y_pred)
+
+                    y_pred = remove_non_missing(y_pred, self.x_test, copy=True)
+
+                    results = evaluate(self.y_test, y_pred, metrics=self.metrics, batch_size=batch_size)
+
+                    if total_result == None:
+                        total_result = len(batch), results
+                    else:
+                        old_len, old_results = total_result
+                        new_res = []
+                        for (old_mean, old_std), (new_mean, new_std) in zip(old_results, results):
+                            mean = old_mean * old_len + new_mean * len(batch)
+                            mean = mean / (old_len + len(batch))
+                            std = old_std
+                            new_res.append((mean, std))
+                        total_result = new_res
+
+                for metric, (mean, std) in zip(self.metrics, total_result):
+                    log("- {}: {} ({})".format(metric, mean, std))
+
+                log("\nOverall time: {} seconds."
+                    .format(timedelta(seconds=timer() - t_0)))
+                log('-' * 79)
+
+
             else:
-                # dont hide that we are assuming an ndarray to be returned
-                y_pred = np.asarray(y_pred)
+                y_pred = recommender.predict(test_set)
+                if sp.issparse(y_pred):
+                    y_pred = y_pred.toarray()
+                else:
+                    # dont hide that we are assuming an ndarray to be returned
+                    y_pred = np.asarray(y_pred)
 
-            # set likelihood of documents that are already cited to zero, so
-            # they don't influence evaluation
-            y_pred = remove_non_missing(y_pred, self.x_test, copy=True)
+                # set likelihood of documents that are already cited to zero, so
+                # they don't influence evaluation
+                y_pred = remove_non_missing(y_pred, self.x_test, copy=True)
 
-            log("Prediction took {} seconds."
-                  .format(timedelta(seconds=timer()-t_1)))
+                log("Prediction took {} seconds."
+                    .format(timedelta(seconds=timer() - t_1)))
 
-            if self.logdir:
+                if self.logdir:
+                    t_1 = timer()
+                    pred_file = os.path.join(self.logdir, repr(recommender))
+                    np.save(pred_file, y_pred)
+                    log("Storing predictions took {} seconds."
+                        .format(timedelta(seconds=timer() - t_1)))
+
                 t_1 = timer()
-                pred_file = os.path.join(self.logdir, repr(recommender))
-                np.save(pred_file, y_pred)
-                log("Storing predictions took {} seconds."
-                      .format(timedelta(seconds=timer()-t_1)))
+                results = evaluate(self.y_test, y_pred, metrics=self.metrics, batch_size=batch_size)
+                log("Evaluation took {} seconds."
+                    .format(timedelta(seconds=timer() - t_1)))
 
-            t_1 = timer()
-            results = evaluate(self.y_test, y_pred, metrics=self.metrics, batch_size=batch_size)
-            log("Evaluation took {} seconds."
-                  .format(timedelta(seconds=timer()-t_1)))
+                log("\nResults:\n")
+                for metric, (mean, std) in zip(self.metrics, results):
+                    log("- {}: {} ({})".format(metric, mean, std))
 
-            log("\nResults:\n")
-            for metric, (mean, std) in zip(self.metrics, results):
-                log("- {}: {} ({})".format(metric, mean, std))
+                log("\nOverall time: {} seconds."
+                    .format(timedelta(seconds=timer() - t_0)))
+                log('-' * 79)
 
-            log("\nOverall time: {} seconds."
-                  .format(timedelta(seconds=timer()-t_0)))
-            log('-' * 79)
 
 if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

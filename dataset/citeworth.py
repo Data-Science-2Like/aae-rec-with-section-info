@@ -25,7 +25,7 @@ def load_citeworth(path):
             data.append(json.loads(l.strip()))
 
     rename_key(data,'paper_title','title')
-    rename_key(data,'paper_authors','authors')
+    # rename_key(data,'paper_authors','authors')
     rename_key(data, 'paper_year','year')
     rename_key(data, 'outgoing_citations', 'references')
     rename_key(data,'paper_id','id')
@@ -39,14 +39,6 @@ def load_citeworth(path):
     for entry in data:
         all_ids.append(entry['id'])
 
-    # if ref id not in dataset remove
-    remove_cnt = 0
-    for entry in data:
-        for ref in entry['references']:
-            if ref not in all_ids:
-                entry['references'].remove(ref)
-                remove_cnt += 1
 
-    print(f"Removed {remove_cnt} orphaned references")
 
     return data
