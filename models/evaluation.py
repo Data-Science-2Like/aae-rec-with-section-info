@@ -337,10 +337,10 @@ class Evaluation(object):
             split_metrics_calculation = True
             t_1 = timer()
             total_result = None
-            if split_metrics_calculation:
+            if split_metrics_calculation and False:
                 for start in range(0, len(test_set), batch_size):
                     end = start + batch_size
-                    batch = test_set[start:end].toarray()
+                    batch = test_set[start:end]
                     y_pred = recommender.predict(batch)
                     if sp.issparse(y_pred):
                         y_pred = y_pred.toarray()

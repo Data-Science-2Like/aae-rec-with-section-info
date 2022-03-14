@@ -69,16 +69,20 @@ class BM25Baseline(Recommender):
         return "BM25 Baseline"
 
     def train(self, X):
-        self.corpus = X.get_single_attribute_vocab('title')
+        self.corpus = X.owner_attributes['title']
         self.tokenized_corpus = [doc.split(" ") for doc in self.corpus.values()]
         self.bm25 = BM25Okapi(self.tokenized_corpus)
         pass
 
     def predict(self, X):
         predictions = list()
-        queries = X.owner_attributes['title']
-        for query_token in queries:
-            tokenized_query = queries[query_token].split(" ")
-            doc_scores = self.bm25.get_scores(tokenized_query)
+        for query in X:
+            query_titles = [self.corpus.get(str(id)) for id in query]
+            doc_scores = np.zeros(len(self.corpus))
+            for title in query_titles:
+                if title != None:
+                    tokenized_query = title.split(" ")
+                    part_scores = np.array(self.bm25.get_scores(tokenized_query))
+                    doc_scores = doc_scores + part_scores
             predictions.append(doc_scores)
         return predictions

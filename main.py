@@ -17,6 +17,7 @@ import models.aae
 
 from models.aae import AAERecommender, DecodingRecommender
 # from models.baselines import Countbased, RandomBaseline, MostPopular, BM25Baseline
+from models.baselines import BM25Baseline, RandomBaseline
 from models.datasets import Bags
 from models.evaluation import Evaluation
 from models.svd import SVDRecommender
@@ -223,8 +224,8 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     if baselines:
         # Models without metadata
         BASELINES = [
-            # BM25Baseline()
-            # RandomBaseline(),
+            BM25Baseline(),
+            RandomBaseline()
             #MostPopular(),
             #Countbased(),
             #SVDRecommender(1000, use_title=False)
