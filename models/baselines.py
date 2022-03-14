@@ -5,6 +5,7 @@ from numpy.random import rand
 from models.base import Recommender
 from models.datasets import BagsWithVocab, Bags
 from rank_bm25 import BM25Okapi
+from tqdm import tqdm
 
 class RandomBaseline(Recommender):
     """ Random Baseline """
@@ -76,7 +77,7 @@ class BM25Baseline(Recommender):
 
     def predict(self, X):
         predictions = list()
-        for query in X:
+        for query in tqdm(X):
             query_titles = [self.corpus.get(str(id)) for id in query]
             doc_scores = np.zeros(len(self.corpus))
             for title in query_titles:
