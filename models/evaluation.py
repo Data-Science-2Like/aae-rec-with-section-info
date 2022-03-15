@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from sklearn.preprocessing import minmax_scale
 import numpy as np
 import scipy.sparse as sp
+from tqdm import tqdm
 
 from models import rank_metrics as rm
 from models.datasets import corrupt_sets
@@ -177,7 +178,8 @@ UNBOUNDED_METRICS = {
     for M in [MRR, MAP]
 }
 
-METRICS = {**BOUNDED_METRICS, **UNBOUNDED_METRICS}
+# METRICS = {**BOUNDED_METRICS, **UNBOUNDED_METRICS}
+METRICS = {**UNBOUNDED_METRICS}
 
 
 def remove_non_missing(Y_pred, X_test, copy=True):
@@ -337,8 +339,8 @@ class Evaluation(object):
             split_metrics_calculation = True
             t_1 = timer()
             total_result = None
-            if split_metrics_calculation and False:
-                for start in range(0, len(test_set), batch_size):
+            if split_metrics_calculation:
+                for start in tqdm(range(0, len(test_set), batch_size)):
                     end = start + batch_size
                     batch = test_set[start:end]
                     y_pred = recommender.predict(batch)

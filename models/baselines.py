@@ -86,7 +86,7 @@ class BM25Baseline(Recommender):
 
     def predict(self, X):
         predictions = []
-        for query in tqdm(X):
+        for query in X:
             query_titles = [self.corpus[id] for id in query]
             doc_scores = np.zeros(len(self.corpus))
             for title in query_titles:
