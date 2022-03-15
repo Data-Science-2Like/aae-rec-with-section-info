@@ -70,20 +70,40 @@ class BM25Baseline(Recommender):
         return "BM25 Baseline"
 
     def train(self, X):
-        self.corpus = X.owner_attributes['title']
-        self.tokenized_corpus = [doc.split(" ") for doc in self.corpus.values()]
+        # there are some entries which dont have a title
+        self.corpus = [X.owner_attributes['title'].get(id) for id in X.index2token.values()]
+
+        self.tokenized_corpus = []
+        self.lookup_table = [] # has length of records with title
+        for i, entry in enumerate(self.corpus):
+            if entry is not None:
+                self.tokenized_corpus.append(entry.split(" "))
+                self.lookup_table.append(i)
+
+
         self.bm25 = BM25Okapi(self.tokenized_corpus)
         pass
 
     def predict(self, X):
-        predictions = list()
+        predictions = []
         for query in tqdm(X):
-            query_titles = [self.corpus.get(str(id)) for id in query]
+            query_titles = [self.corpus[id] for id in query]
             doc_scores = np.zeros(len(self.corpus))
             for title in query_titles:
+                filled_scores = np.zeros(len(self.corpus))
                 if title != None:
                     tokenized_query = title.split(" ")
                     part_scores = np.array(self.bm25.get_scores(tokenized_query))
-                    doc_scores = doc_scores + part_scores
+
+
+                    if len(self.lookup_table) < len(self.corpus):
+                        # bm25 only returns a score for record with titles
+                        # fill the rest with zeros
+                        for idx, val in enumerate(self.lookup_table):
+                            filled_scores[val] = part_scores[idx]
+                        doc_scores = doc_scores + filled_scores
+                    else:
+                        # all entries have a title
+                        doc_scores = doc_scores + part_scores
             predictions.append(doc_scores)
-        return predictions
+        return np.array(predictions)
