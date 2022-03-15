@@ -35,6 +35,9 @@ def load_acm(path):
                 paper["venue"] = line[2:]
             elif line[1] == 'i':
                 paper["id"] = line[6:]
+            elif line[1] == '!':
+                # ignore abstract
+                continue
             else:
                 paper["references"].append(line[2:])
 
