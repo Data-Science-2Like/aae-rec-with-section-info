@@ -336,7 +336,7 @@ class Evaluation(object):
             log("Training took {} seconds."
                 .format(timedelta(seconds=timer() - t_0)))
             # torch.save(recommender.state_dict(), "1epoch_test.model")
-            split_metrics_calculation = True
+            split_metrics_calculation = False
             t_1 = timer()
             total_result = None
             if split_metrics_calculation:
@@ -350,9 +350,9 @@ class Evaluation(object):
                         # dont hide that we are assuming an ndarray to be returned
                         y_pred = np.asarray(y_pred)
 
-                    y_pred = remove_non_missing(y_pred, self.x_test, copy=True)
+                    y_pred = remove_non_missing(y_pred, self.x_test[start:end], copy=True)
 
-                    results = evaluate(self.y_test, y_pred, metrics=self.metrics, batch_size=batch_size)
+                    results = evaluate(self.y_test[start:end], y_pred, metrics=self.metrics, batch_size=batch_size)
 
                     if total_result == None:
                         total_result = len(batch), results
@@ -364,9 +364,9 @@ class Evaluation(object):
                             mean = mean / (old_len + len(batch))
                             std = old_std
                             new_res.append((mean, std))
-                        total_result = new_res
+                        total_result = old_len + len(batch), new_res
 
-                for metric, (mean, std) in zip(self.metrics, total_result):
+                for metric, (mean, std) in zip(self.metrics, total_result[1]):
                     log("- {}: {} ({})".format(metric, mean, std))
 
                 log("\nOverall time: {} seconds."

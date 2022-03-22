@@ -50,9 +50,9 @@ print("Done")
 # Hyperparameters
 AE_PARAMS = {
     'n_code': 50,
-    'n_epochs': 1,
+    'n_epochs': 10,
 #    'embedding': VECTORS,
-    'batch_size': 500,
+    'batch_size': 5000,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
