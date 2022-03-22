@@ -25,9 +25,10 @@ from models.vae import VAERecommender
 from models.dae import DAERecommender
 from models.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
-from utils.paths import W2V_PATH, W2V_IS_BINARY, ACM_PATH, CITEWORTH_PATH, DBLP_PATH, CITE2_PATH
+from utils.paths import W2V_PATH, W2V_IS_BINARY, ACM_PATH, CITEWORTH_PATH, DBLP_PATH, CITE2_PATH, AAN_PATH
 from dataset.aminer import load_dblp, load_acm
 from dataset.citeworth import load_citeworth
+from dataset.anthology_network import load_aan
 
 from utils.log import log
 import utils.log
@@ -76,6 +77,8 @@ def papers_from_files(dataset, n_jobs=1, debug=False):
         return load_citeworth(CITEWORTH_PATH)
     elif dataset == "cite2":
         return load_citeworth(CITE2_PATH)
+    elif dataset == "aan":
+        return load_aan(AAN_PATH)
 
     it = glob.iglob(os.path.join(DBLP_PATH, '*.json'))
     if debug:
@@ -317,7 +320,7 @@ if __name__ == '__main__':
                         help='First year of the testing set.')
     parser.add_argument('-d', '--dataset', type=str,
                         help="Parse the DBLP,Citeworth or ACM dataset", default="acm",
-                        choices=["dblp", "acm", "cite", "cite2"])
+                        choices=["dblp", "acm", "cite", "cite2", "aan"])
     parser.add_argument('-m', '--min-count', type=int,
                         help='Pruning parameter', default=None)
     parser.add_argument('-o', '--outfile',
