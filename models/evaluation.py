@@ -1,3 +1,5 @@
+import pickle
+from pathlib import Path
 from timeit import default_timer as timer
 from datetime import timedelta
 import os
@@ -262,6 +264,8 @@ class Evaluation(object):
         self.logfile = logfile
         self.logdir = logdir
 
+        self.save_model = Path('./serialize/aae.pickle')
+
         self.train_set, self.test_set = None, None
         self.x_test, self.y_test = None, None
 
@@ -336,7 +340,10 @@ class Evaluation(object):
             log("Training took {} seconds."
                 .format(timedelta(seconds=timer() - t_0)))
             # torch.save(recommender.state_dict(), "1epoch_test.model")
-            split_metrics_calculation = False
+            split_metrics_calculation = True
+            if self.save_model:
+                pickle.dump(recommender, open(self.save_model,"wb"))
+                log("Serialized to {}".format(self.save_model))
             t_1 = timer()
             total_result = None
             if split_metrics_calculation:
