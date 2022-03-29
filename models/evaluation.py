@@ -166,6 +166,23 @@ class P(RankingMetric):
         else:
             return ps
 
+class R(RankingMetric):
+    def __init__(self, k=None):
+        super().__init__(k=k)
+
+    def __call__(self, y_true, y_pred, average=True):
+        rs = super().__call__(y_true,y_pred)
+        # we want to know how many true items have been recalled of all true items
+        retrieved = (rs > 0).sum(axis=1)
+        print(f"Shape {retrieved.shape}, max: {np.max(retrieved)}, min: {np.min(retrieved)}")
+
+        gold = np.maximum((y_true > 0).sum(axis=1),np.ones(retrieved.shape[0]))
+        print(f"Shape gold {gold.shape}, max: {np.max(gold)}, min: {np.min(retrieved)}")
+        re = np.divide(retrieved, gold)
+        if average:
+            return re.mean(), re.std()
+        else:
+            return re
 
 BOUNDED_METRICS = {
     # (bounded) ranking metrics
@@ -174,6 +191,11 @@ BOUNDED_METRICS = {
 }
 BOUNDED_METRICS['P@1'] = P(1)
 
+RECALL_METRICS = {
+    '{}@{}'.format(M.__name__.lower(), k): M(k)
+    for M in [R] for k in [5, 10, 20,500,2000]
+}
+
 UNBOUNDED_METRICS = {
     # unbounded metrics
     M.__name__.lower(): M()
@@ -181,7 +203,7 @@ UNBOUNDED_METRICS = {
 }
 
 # METRICS = {**BOUNDED_METRICS, **UNBOUNDED_METRICS}
-METRICS = {**UNBOUNDED_METRICS}
+METRICS = {**UNBOUNDED_METRICS, **RECALL_METRICS}
 
 
 def remove_non_missing(Y_pred, X_test, copy=True):
@@ -340,7 +362,7 @@ class Evaluation(object):
             log("Training took {} seconds."
                 .format(timedelta(seconds=timer() - t_0)))
             # torch.save(recommender.state_dict(), "1epoch_test.model")
-            split_metrics_calculation = True
+            split_metrics_calculation = False
             if self.save_model:
                 pickle.dump(recommender, open(self.save_model,"wb"))
                 log("Serialized to {}".format(self.save_model))
