@@ -176,7 +176,13 @@ class R(RankingMetric):
         retrieved = (rs > 0).sum(axis=1)
         print(f"Shape {retrieved.shape}, max: {np.max(retrieved)}, min: {np.min(retrieved)}")
 
-        gold = np.maximum((y_true > 0).sum(axis=1),np.ones(retrieved.shape[0]))
+        gold = (y_true > 0).sum(axis=1)
+
+        # maybe there are some sets which don't have any possible keys
+        # remove them from the metrics calculation
+        retrieved = retrieved[gold > 0]
+        gold = gold[gold > 0]
+        # gold = np.maximum((y_true > 0).sum(axis=1),np.ones(retrieved.shape[0]))
         print(f"Shape gold {gold.shape}, max: {np.max(gold)}, min: {np.min(retrieved)}")
         re = np.divide(retrieved, gold)
         if average:
