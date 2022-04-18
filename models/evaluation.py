@@ -285,9 +285,11 @@ class Evaluation(object):
                  year,
                  metrics=METRICS,
                  logfile=sys.stdout,
-                 logdir=None):
+                 logdir=None,
+                 val_year=-1):
         self.dataset = dataset
         self.year = year
+        self.val_year = val_year
         self.metrics = metrics
         self.logfile = logfile
         self.logdir = logdir
@@ -296,6 +298,9 @@ class Evaluation(object):
 
         self.train_set, self.test_set = None, None
         self.x_test, self.y_test = None, None
+        if self.val_year > 0:
+            self.val_set = None
+            #self.x_val, self.y_val = None, None
 
     def setup(self, seed=42, min_elements=1, max_features=None,
               min_count=None, drop=1):
@@ -309,9 +314,13 @@ class Evaluation(object):
         """ Splits and corrupts the data accordion to criterion """
         random.seed(seed)
         np.random.seed(seed)
-        # train_set, test_set = self.dataset.split(self.split_test,
-        #                                          self.split_train)
-        train_set, test_set = self.dataset.train_test_split(on_year=self.year)
+
+        train_set, test_set, val_set = None,None,None
+        if self.val_year > 0:
+            train_set, val_set, test_set = self.dataset.train_val_test_split(val_year=self.val_year,test_year=self.year)
+        else:
+            train_set, test_set = self.dataset.train_test_split(on_year=self.year)
+
         log("=" * 80)
         log("Train:", train_set)
         log("Test:", test_set)
@@ -321,12 +330,18 @@ class Evaluation(object):
                                           max_features=max_features,
                                           apply=True)
         test_set = test_set.apply_vocab(train_set.vocab)
+        if val_set is not None:
+            val_set = val_set.apply_vocab(train_set.vocab)
+
         # Train and test sets are now BagsWithVocab
         train_set.prune_(min_elements=min_elements)
         test_set.prune_(min_elements=min_elements)
+        if val_set is not None:
+             val_set.prune_(min_elements=min_elements)
         log("Train:", train_set)
+        if val_set is not None:
+            log("Val:", val_set)
         log("Test:", test_set)
-        log("Drop parameter:", drop)
         log("Drop parameter:", drop)
 
         noisy, missing = corrupt_sets(test_set.data, drop=drop)
@@ -336,8 +351,18 @@ class Evaluation(object):
         test_set.data = noisy
         log("-" * 80)
 
+        #if val_set is not None:
+        #    noisy_val, missing_val = corrupt_sets(val_set.data, drop=drop)
+        #    assert len(noisy_val) == len(missing_val) == len(val_set)
+        #    val_set.data = noisy_val
+        #    self.y_val = lists2sparse(missing_val, val_set.size(1)).tocsr(copy=False)
+        #    self.x_val = lists2sparse(noisy_val, val_set.size(1)).tocsr(copy=False)
+        #
+        #    self.val_set = val_set
+
         # THE GOLD
         self.y_test = lists2sparse(missing, test_set.size(1)).tocsr(copy=False)
+
 
         self.train_set = train_set
         self.test_set = test_set
@@ -364,7 +389,10 @@ class Evaluation(object):
             train_set = self.train_set.clone()
             test_set = self.test_set.clone()
             t_0 = timer()
-            recommender.train(train_set)
+            if self.val_set is not None:
+                recommender.train(train_set,self.val_set)
+            else:
+                recommender.train(train_set)
             log("Training took {} seconds."
                 .format(timedelta(seconds=timer() - t_0)))
             # torch.save(recommender.state_dict(), "1epoch_test.model")
