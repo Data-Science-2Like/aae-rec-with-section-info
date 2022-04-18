@@ -11,7 +11,7 @@ def log(*print_args, logfile : Optional[Path] = None) -> None:
             logfile.parent.mkdir(exist_ok=True, parents=True)
         with open(logfile, 'a') as f:
             print(*print_args, file=f)
-    if LOGFILE:
+    elif LOGFILE:
         if not LOGFILE.parent.exists():
             LOGFILE.parent.mkdir(exist_ok=True, parents=True)
         with open(LOGFILE, 'a') as f:

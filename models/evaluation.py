@@ -174,7 +174,7 @@ class R(RankingMetric):
         rs = super().__call__(y_true,y_pred)
         # we want to know how many true items have been recalled of all true items
         retrieved = (rs > 0).sum(axis=1)
-        print(f"Shape {retrieved.shape}, max: {np.max(retrieved)}, min: {np.min(retrieved)}")
+        # print(f"Shape {retrieved.shape}, max: {np.max(retrieved)}, min: {np.min(retrieved)}")
 
         gold = (y_true > 0).sum(axis=1)
 
@@ -183,7 +183,7 @@ class R(RankingMetric):
         retrieved = retrieved[gold > 0]
         gold = gold[gold > 0]
         # gold = np.maximum((y_true > 0).sum(axis=1),np.ones(retrieved.shape[0]))
-        print(f"Shape gold {gold.shape}, max: {np.max(gold)}, min: {np.min(retrieved)}")
+        # print(f"Shape gold {gold.shape}, max: {np.max(gold)}, min: {np.min(retrieved)}")
         re = np.divide(retrieved, gold)
         if average:
             return re.mean(), re.std()
@@ -439,6 +439,7 @@ class Evaluation(object):
                 log("\nResults:\n")
                 for metric, (mean, std) in zip(self.metrics, results):
                     log("- {}: {} ({})".format(metric, mean, std))
+                    log("- {}: {} ({})".format(metric, mean,std), logfile=Path('test.txt'))
 
                 log("\nOverall time: {} seconds."
                     .format(timedelta(seconds=timer() - t_0)))

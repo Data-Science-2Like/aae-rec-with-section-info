@@ -54,7 +54,7 @@ AE_PARAMS = {
     'n_epochs': 20,
 #    'embedding': VECTORS,
     'batch_size': 5000,
-    'n_hidden': 100,
+    'n_hidden': 160,
     'normalize_inputs': True,
 }
 
@@ -199,11 +199,16 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
         autoencoders=False,
         conditioned_autoencoders=False,
         all_metadata=True,
-        use_section=False):
+        use_section=False,
+        n_code=50,
+        n_hidden=100):
     """ Main function for training and evaluating AAE methods on DBLP data """
 
     assert baselines or autoencoders or conditioned_autoencoders, "Please specify what to run"
 
+
+    AE_PARAMS['n_code'] = n_code
+    AE_PARAMS['n_hidden'] = n_hidden
 
     if all_metadata:
         # V2 - all metadata
@@ -328,6 +333,8 @@ if __name__ == '__main__':
                         type=str, default=None)
     parser.add_argument('-dr', '--drop', type=str,
                         help='Drop parameter', default="1")
+    parser.add_argument('--code', type=int, help='number of code neurons', default=50)
+    parser.add_argument('--hidden', type=int, help='number of hidden neurons', default=100)
     parser.add_argument('--compute-mi', default=False,
                         action='store_true')
     parser.add_argument('--all_metadata', default=False,
@@ -354,4 +361,6 @@ if __name__ == '__main__':
             baselines=args.baselines,
             autoencoders=args.autoencoders,
             conditioned_autoencoders=args.conditioned_autoencoders,
-            use_section=args.use_section)
+            use_section=args.use_section,
+            n_code=args.code,
+            n_hidden=args.hidden)
