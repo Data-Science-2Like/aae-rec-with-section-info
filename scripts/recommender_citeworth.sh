@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DATASET=cite2
-DATASET_YEAR=2014
+DATASET_YEAR=2019
 OUTPUT_PREFIX=/media/nvme2n1/project_struct_cite/aae
 
 THRES=5

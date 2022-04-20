@@ -313,6 +313,9 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     log("Whole dataset:")
     log(bags)
 
+    u = len(set(bags.owner_attributes['title']))
+    log(f"Keeping {u} papers")
+
     evaluation = Evaluation(bags, year, logfile=Path(outfile))
     evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
     log("~ Partial List + Titles + Author + Venue", "~" * 42)
