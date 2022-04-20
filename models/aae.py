@@ -332,7 +332,7 @@ class AutoEncoder():
             log_losses(recon_loss, 0, 0)
         return self
 
-    def fit(self, X, y=None, condition_data=None):
+    def fit(self, X, y=None, val_data= None, val_cond = None, condition_data=None):
         """
         :param X: np.array, the base data from Bag class
         :param y: dummy variable, throws Error if used
@@ -380,6 +380,8 @@ class AutoEncoder():
         self.dec_optim = optimizer_gen(self.dec.parameters(), lr=self.lr)
 
         # do the actual training
+        min_valid_loss = np.inf
+        best_epoch = 0
         step = 0
         for epoch in range(self.n_epochs):
             if self.verbose:
@@ -404,9 +406,25 @@ class AutoEncoder():
                     self.partial_fit(X_batch, step=step)
                 step += 1
 
+            if val_data is not None:
+                self.eval()
+
+                val = Variable(torch.FloatTensor(val_data))
+                if torch.cuda.is_available():
+                    val = val.cuda()
+
+                self.train()
+                val_loss = self.ae_step(val, condition_data=val_cond)
+
+                print(f'\t\t Validation Loss: {val_loss}')
+                if min_valid_loss > val_loss:
+                    print(f'Validation Loss Decreased({min_valid_loss:.6f}--->{val_loss:.6f})')
+                    min_valid_loss = val_loss
+                    best_epoch = epoch +1
             if self.verbose:
                 # Clean up after flushing batch loss printings
                 print()
+            print("The best epoch was ", best_epoch)
         return self
 
     def predict(self, X, condition_data=None):
@@ -750,7 +768,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
 
         return self
 
-    def fit(self, X, y=None, condition_data=None):
+    def fit(self, X, y=None, val_data=None, val_cond=None, condition_data=None):
         ### DONE Adapt to generic condition ###
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
@@ -816,9 +834,25 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                     self.partial_fit(X_batch, step=step)
                 step += 1
 
+            if val_data is not None:
+                self.eval()
+
+                val = Variable(torch.FloatTensor(val_data))
+                if torch.cuda.is_available():
+                    val = val.cuda()
+
+                self.train()
+                val_loss = self.ae_step(val, condition_data=val_cond)
+
+                print(f'\t\t Validation Loss: {val_loss}')
+                if min_valid_loss > val_loss:
+                    print(f'Validation Loss Decreased({min_valid_loss:.6f}--->{val_loss:.6f})')
+                    min_valid_loss = val_loss
+                    best_epoch = epoch + 1
             if self.verbose:
                 # Clean up after flushing batch loss printings
                 print()
+            print("The best epoch was ", best_epoch)
         return self
 
 
@@ -913,7 +947,7 @@ class AAERecommender(Recommender):
         return desc
 
 
-    def train(self, training_set):
+    def train(self, training_set, validation_set=None):
         ### DONE Adapt to generic condition ###
         """
         1. get basic representation
@@ -943,9 +977,16 @@ class AAERecommender(Recommender):
         print(self.model)
         print(self.conditions)
 
-
-        # gives (Adversarial) Autoencoder BaseData (--> X: <???> representation) and side_info (attr_vect: numpy)
-        self.model.fit(X, condition_data=condition_data)
+        if validation_set is not None:
+            val_data = validation_set.tocsr()
+            if self.conditions:
+                val_cond = validation_set.get_attributes(self.conditions.keys())
+                val_cond = self.conditions.fit_transform(val_cond)
+            else:
+                val_cond = None
+            self.model.fit(X,val_data=val_data, val_cond=val_cond, condition_data=condition_data)
+        else:
+            self.model.fit(X, condition_data=condition_data)
 
     def predict(self, test_set):
         ### DONE Adapt to generic condition ###

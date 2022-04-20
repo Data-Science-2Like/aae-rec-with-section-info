@@ -201,7 +201,8 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
         all_metadata=True,
         use_section=False,
         n_code=50,
-        n_hidden=100):
+        n_hidden=100,
+        val_year=-1):
     """ Main function for training and evaluating AAE methods on DBLP data """
 
     assert baselines or autoencoders or conditioned_autoencoders, "Please specify what to run"
@@ -313,10 +314,12 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     log("Whole dataset:")
     log(bags)
 
+
     u = len(set(bags.owner_attributes['title']))
     log(f"Keeping {u} papers")
 
-    evaluation = Evaluation(bags, year, logfile=Path(outfile))
+    evaluation = Evaluation(bags, year, logfile=Path(outfile),val_year=val_year)
+
     evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
     log("~ Partial List + Titles + Author + Venue", "~" * 42)
     evaluation(ALL_MODELS, batch_size=1000)
@@ -326,6 +329,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('year', type=int,
                         help='First year of the testing set.')
+    parser.add_argument('--val_year',type=int, default=-1, help='First year of the validation set. If not supplied no validation set will be used')
     parser.add_argument('-d', '--dataset', type=str,
                         help="Parse the DBLP,Citeworth or ACM dataset", default="acm",
                         choices=["dblp", "acm", "cite", "cite2", "aan"])
@@ -366,4 +370,5 @@ if __name__ == '__main__':
             conditioned_autoencoders=args.conditioned_autoencoders,
             use_section=args.use_section,
             n_code=args.code,
-            n_hidden=args.hidden)
+            n_hidden=args.hidden,
+            val_year=args.val_year)

@@ -20,7 +20,11 @@ def split_by_mask(data, condition):
     falsy = [d for i, d in enumerate(data) if not condition[i]]
     return truthy, falsy
 
-
+def triple_split(data, cond1, cond2):
+    g1 = [d for i, d in enumerate(data) if cond1 and not cond2]
+    g2 = [d for i, d in enumerate(data) if not cond1 and cond2]
+    g3 = [d for i, d in enumerate(data) if not cond1 and not cond2]
+    return g1, g2, g3
 
 def magic(S, N, alpha=0.05):
     return S**2 * math.log(S * N / alpha)
@@ -348,6 +352,40 @@ class Bags(object):
         train_set = Bags(train_data, train_owners, owner_attributes=train_attributes)
         test_set = Bags(test_data, test_owners, owner_attributes=test_attributes)
         return train_set, test_set
+
+    def train_val_test_split(self,test_year=None, val_year=None):
+        """ Returns one training bag instance, one validation test bag instance and one test bag instance.
+        Builds the vocabulary from the training set.
+
+        :param on_year: int, split on this year
+        :param **split_params:
+        :return: tuple, first training bag instance, second val bag instance, third test bag instance
+        """
+        if test_year is not None and val_year is not None:
+            print("Splitting data on year:", val_year, " and on year:", test_year)
+            assert self.owner_attributes['year'], "Cant split on non-existing 'year'"
+            test_year = int(test_year)
+            val_year = int(val_year)
+            assert val_year < test_year, "Validation set must be befor test set"
+            is_train = [int(y) < val_year for y in self.get_single_attribute('year')]
+            is_val = [int(y) >= val_year and int(y) < test_year for y in self.get_single_attribute('year')]
+
+            train_data, val_data, test_data = triple_split(self.data, is_train, is_val)
+            train_owners, val_owners, test_owners = triple_split(self.bag_owners, is_train, is_val)
+        else:
+            raise NotImplementedError("not supported")
+        print("{} train,{} val, {} test documents.".format(len(train_data),len(val_data), len(test_data)))
+        metadata_columns = list(self.owner_attributes.keys())
+        train_attributes = {k: {owner: self.owner_attributes[k][owner] for owner in
+                                train_owners} for k in metadata_columns}
+        val_attributes = {k: {owner: self.owner_attributes[k][owner] for owner in
+                                val_owners} for k in metadata_columns}
+        test_attributes = {k: {owner: self.owner_attributes[k][owner] for owner in
+                               test_owners} for k in metadata_columns}
+        train_set = Bags(train_data, train_owners, owner_attributes=train_attributes)
+        val_set = Bags(val_data,val_owners, owner_attributes=val_attributes)
+        test_set = Bags(test_data, test_owners, owner_attributes=test_attributes)
+        return train_set,val_set, test_set
 
     def build_vocab(self, min_count=None, max_features=None, apply=True):
         """
