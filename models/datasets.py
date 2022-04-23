@@ -21,9 +21,9 @@ def split_by_mask(data, condition):
     return truthy, falsy
 
 def triple_split(data, cond1, cond2):
-    g1 = [d for i, d in enumerate(data) if cond1 and not cond2]
-    g2 = [d for i, d in enumerate(data) if not cond1 and cond2]
-    g3 = [d for i, d in enumerate(data) if not cond1 and not cond2]
+    g1 = [d for i, d in enumerate(data) if cond1[i] and not cond2[i]]
+    g2 = [d for i, d in enumerate(data) if cond2[i] and not cond1[i]]
+    g3 = [d for i, d in enumerate(data) if not cond1[i] and not cond2[i]]
     return g1, g2, g3
 
 def magic(S, N, alpha=0.05):

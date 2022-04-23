@@ -323,6 +323,8 @@ class Evaluation(object):
 
         log("=" * 80)
         log("Train:", train_set)
+        if val_set is not None:
+            log("Val:", val_set)
         log("Test:", test_set)
         log("Next Pruning:\n\tmin_count: {}\n\tmax_features: {}\n\tmin_elements: {}"
             .format(min_count, max_features, min_elements))
@@ -359,6 +361,7 @@ class Evaluation(object):
         #    self.x_val = lists2sparse(noisy_val, val_set.size(1)).tocsr(copy=False)
         #
         #    self.val_set = val_set
+        self.val_set = val_set
 
         # THE GOLD
         self.y_test = lists2sparse(missing, test_set.size(1)).tocsr(copy=False)
@@ -374,6 +377,8 @@ class Evaluation(object):
     def __call__(self, recommenders, batch_size=None):
         if None in (self.train_set, self.test_set, self.x_test, self.y_test):
             raise UserWarning("Call .setup() before running the experiment")
+        if self.val_year > 0 and self.val_set is None:
+            raise UserWarning("No validation data found")
 
         if self.logdir:
             os.makedirs(self.logdir, exist_ok=True)

@@ -268,15 +268,15 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     if conditioned_autoencoders:
         # Model with metadata (metadata used as set in CONDITIONS above)
         CONDITIONED_AUTOENCODERS = [
-            AAERecommender(adversarial=False,
-                           conditions=CONDITIONS,
-                           lr=0.001,
-                           **AE_PARAMS),
-            #AAERecommender(adversarial=True,
+            #AAERecommender(adversarial=False,
             #               conditions=CONDITIONS,
-            #               gen_lr=0.001,
-            #               reg_lr=0.001,
-            #                **AE_PARAMS)
+            #               lr=0.001,
+            #               **AE_PARAMS),
+            AAERecommender(adversarial=True,
+                           conditions=CONDITIONS,
+                           gen_lr=0.001,
+                           reg_lr=0.001,
+                            **AE_PARAMS)
             #DecodingRecommender(CONDITIONS,
             #                    n_epochs=100, batch_size=1000, optimizer='adam',
             #                    n_hidden=100, lr=0.001, verbose=True),
@@ -329,7 +329,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('year', type=int,
                         help='First year of the testing set.')
-    parser.add_argument('--val_year',type=int, default=-1, help='First year of the validation set. If not supplied no validation set will be used')
+    parser.add_argument('--val',type=int, default=-1, help='First year of the validation set. If not supplied no validation set will be used')
     parser.add_argument('-d', '--dataset', type=str,
                         help="Parse the DBLP,Citeworth or ACM dataset", default="acm",
                         choices=["dblp", "acm", "cite", "cite2", "aan"])
@@ -371,4 +371,4 @@ if __name__ == '__main__':
             use_section=args.use_section,
             n_code=args.code,
             n_hidden=args.hidden,
-            val_year=args.val_year)
+            val_year=args.val)

@@ -23,6 +23,7 @@ from gensim.models.keyedvectors import KeyedVectors
 
 from .condition import _check_conditions
 
+from utils import log
 
 torch.manual_seed(42)
 TINY = 1e-12
@@ -409,22 +410,25 @@ class AutoEncoder():
             if val_data is not None:
                 self.eval()
 
-                val = Variable(torch.FloatTensor(val_data))
-                if torch.cuda.is_available():
-                    val = val.cuda()
-
-                self.train()
-                val_loss = self.ae_step(val, condition_data=val_cond)
+                val_loss = 0
+                for start in range(0, val_data.shape[0], self.batch_size):
+                    end = start + self.batch_size
+                    val_batch = val_data[start:end].toarray()
+                    cond_batch = [c[start:end] for c  in val_cond]
+                    val_batch = Variable(torch.FloatTensor(val_batch))
+                    if torch.cuda.is_available():
+                        val_batch = val_batch.cuda()
+                    val_loss += self.ae_step(val_batch, condition_data=cond_batch)
 
                 print(f'\t\t Validation Loss: {val_loss}')
                 if min_valid_loss > val_loss:
-                    print(f'Validation Loss Decreased({min_valid_loss:.6f}--->{val_loss:.6f})')
+                    log(f'Validation Loss Decreased({min_valid_loss:.6f}--->{val_loss:.6f})')
                     min_valid_loss = val_loss
                     best_epoch = epoch +1
             if self.verbose:
                 # Clean up after flushing batch loss printings
                 print()
-            print("The best epoch was ", best_epoch)
+        log("The best epoch was ", best_epoch)
         return self
 
     def predict(self, X, condition_data=None):
@@ -808,6 +812,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
 
         # do the actual training
         step = 0
+        min_valid_loss = np.inf
         for epoch in range(self.n_epochs):
             if self.verbose:
                 print("Epoch", epoch + 1)
@@ -837,12 +842,15 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
             if val_data is not None:
                 self.eval()
 
-                val = Variable(torch.FloatTensor(val_data))
-                if torch.cuda.is_available():
-                    val = val.cuda()
-
-                self.train()
-                val_loss = self.ae_step(val, condition_data=val_cond)
+                val_loss = 0
+                for start in range(0, val_data.shape[0], self.batch_size):
+                    end = start + self.batch_size
+                    val_batch = val_data[start:end].toarray()
+                    cond_batch = [c[start:end] for c  in val_cond]
+                    val_batch = Variable(torch.FloatTensor(val_batch))
+                    if torch.cuda.is_available():
+                        val_batch = val_batch.cuda()
+                    val_loss += self.ae_step(val_batch, condition_data=cond_batch)
 
                 print(f'\t\t Validation Loss: {val_loss}')
                 if min_valid_loss > val_loss:
@@ -852,7 +860,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
             if self.verbose:
                 # Clean up after flushing batch loss printings
                 print()
-            print("The best epoch was ", best_epoch)
+        log("The best epoch was ", best_epoch)
         return self
 
 
