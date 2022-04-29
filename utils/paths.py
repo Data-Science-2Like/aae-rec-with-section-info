@@ -16,4 +16,6 @@ CITEWORTH_PATH = Path("./citeworth/aae_recommender_with_section_info_v1.jsonl")
 
 CITE2_PATH = Path("./citeworth/aae_recommender_with_section_info_v4.jsonl")
 
+CITE5_PATH = Path("./citeworth/aae_recommender_with_section_info_v5.jsonl")
+
 AAN_PATH = Path("./aan/2014/")

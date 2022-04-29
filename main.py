@@ -25,7 +25,7 @@ from models.vae import VAERecommender
 from models.dae import DAERecommender
 from models.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
-from utils.paths import W2V_PATH, W2V_IS_BINARY, ACM_PATH, CITEWORTH_PATH, DBLP_PATH, CITE2_PATH, AAN_PATH
+from utils.paths import W2V_PATH, W2V_IS_BINARY, ACM_PATH, CITEWORTH_PATH, DBLP_PATH, CITE2_PATH, CITE5_PATH, AAN_PATH
 from dataset.aminer import load_dblp, load_acm
 from dataset.citeworth import load_citeworth
 from dataset.anthology_network import load_aan
@@ -51,7 +51,7 @@ print("Done")
 # Hyperparameters
 AE_PARAMS = {
     'n_code': 50,
-    'n_epochs': 20,
+    'n_epochs': 40,
 #    'embedding': VECTORS,
     'batch_size': 5000,
     'n_hidden': 160,
@@ -77,6 +77,8 @@ def papers_from_files(dataset, n_jobs=1, debug=False):
         return load_citeworth(CITEWORTH_PATH)
     elif dataset == "cite2":
         return load_citeworth(CITE2_PATH)
+    elif dataset == "cite5":
+        return load_citeworth(CITE5_PATH)
     elif dataset == "aan":
         return load_aan(AAN_PATH)
 
@@ -332,7 +334,7 @@ if __name__ == '__main__':
     parser.add_argument('--val',type=int, default=-1, help='First year of the validation set. If not supplied no validation set will be used')
     parser.add_argument('-d', '--dataset', type=str,
                         help="Parse the DBLP,Citeworth or ACM dataset", default="acm",
-                        choices=["dblp", "acm", "cite", "cite2", "aan"])
+                        choices=["dblp", "acm", "cite", "cite2","cite5", "aan"])
     parser.add_argument('-m', '--min-count', type=int,
                         help='Pruning parameter', default=None)
     parser.add_argument('-o', '--outfile',

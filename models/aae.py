@@ -23,7 +23,7 @@ from gensim.models.keyedvectors import KeyedVectors
 
 from .condition import _check_conditions
 
-from utils import log
+from utils.log import log
 
 torch.manual_seed(42)
 TINY = 1e-12
