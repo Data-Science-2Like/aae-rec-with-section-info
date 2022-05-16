@@ -51,7 +51,7 @@ print("Done")
 # Hyperparameters
 AE_PARAMS = {
     'n_code': 50,
-    'n_epochs': 40,
+    'n_epochs': 20,
 #    'embedding': VECTORS,
     'batch_size': 5000,
     'n_hidden': 160,
@@ -320,9 +320,9 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     u = len(set(bags.owner_attributes['title']))
     log(f"Keeping {u} papers")
 
-    evaluation = Evaluation(bags, year, logfile=Path(outfile),val_year=val_year)
+    evaluation = Evaluation(bags, year, logfile=Path(outfile))
 
-    evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
+    evaluation.setup(min_count=min_count, min_elements=1, drop=drop)
     log("~ Partial List + Titles + Author + Venue", "~" * 42)
     evaluation(ALL_MODELS, batch_size=1000)
 

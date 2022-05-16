@@ -327,7 +327,7 @@ class AutoEncoder():
         # Make sure we are in training mode and zero leftover gradients
         self.train()
         # One step each, could balance
-        recon_loss = self.ae_step(X, condition_data=condition_data)
+        recon_loss = float(self.ae_step(X, condition_data=condition_data))
 
         if self.verbose:
             log_losses(recon_loss, 0, 0)
@@ -418,7 +418,9 @@ class AutoEncoder():
                     val_batch = Variable(torch.FloatTensor(val_batch))
                     if torch.cuda.is_available():
                         val_batch = val_batch.cuda()
-                    val_loss += self.ae_step(val_batch, condition_data=cond_batch)
+                    val_loss += float(self.ae_step(val_batch, condition_data=cond_batch))
+                    self.zero_grad()
+
 
                 print(f'\t\t Validation Loss: {val_loss}')
                 if min_valid_loss > val_loss:
@@ -767,6 +769,8 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         recon_loss = self.ae_step(X, condition_data=condition_data)
         disc_loss = self.disc_step(X)
         gen_loss = self.gen_step(X)
+
+        self.zero_grad()
         if self.verbose:
             log_losses(recon_loss, disc_loss, gen_loss)
 
@@ -810,6 +814,9 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.gen_optim = optimizer_gen(self.enc.parameters(), lr=self.reg_lr)
         self.disc_optim = optimizer_gen(self.disc.parameters(), lr=self.reg_lr)
 
+
+        best_epoch = 0
+
         # do the actual training
         step = 0
         min_valid_loss = np.inf
@@ -850,7 +857,9 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                     val_batch = Variable(torch.FloatTensor(val_batch))
                     if torch.cuda.is_available():
                         val_batch = val_batch.cuda()
-                    val_loss += self.ae_step(val_batch, condition_data=cond_batch)
+                    val_loss += float(self.ae_step(val_batch, condition_data=cond_batch))
+
+                    self.zero_grad()
 
                 print(f'\t\t Validation Loss: {val_loss}')
                 if min_valid_loss > val_loss:
