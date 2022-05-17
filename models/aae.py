@@ -847,6 +847,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                 step += 1
 
             if val_data is not None:
+                raise ValueError("Validation temporarily deactivated")
                 self.eval()
 
                 val_loss = 0
