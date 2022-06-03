@@ -17,7 +17,7 @@ import models.aae
 
 from models.aae import AAERecommender, DecodingRecommender
 from models.baselines import Countbased, RandomBaseline, MostPopular, BM25Baseline
-#from models.baselines import BM25Baseline, RandomBaseline
+# from models.baselines import BM25Baseline, RandomBaseline
 from models.datasets import Bags
 from models.evaluation import Evaluation
 from models.svd import SVDRecommender
@@ -38,25 +38,24 @@ import utils.log
 # from eval.mpd.mpd import log
 
 
-
-
 DEBUG_LIMIT = 5000
 PAPER_INFO = ['title', 'venue', 'author']
 # Metadata to use
 
-print("Loading keyed vectors") 
+print("Loading keyed vectors")
 VECTORS = KeyedVectors.load_word2vec_format(str(W2V_PATH), binary=W2V_IS_BINARY)
-print("Done") 
+print("Done")
 
 # Hyperparameters
 AE_PARAMS = {
     'n_code': 50,
     'n_epochs': 20,
-#    'embedding': VECTORS,
+    #    'embedding': VECTORS,
     'batch_size': 5000,
     'n_hidden': 160,
     'normalize_inputs': True,
 }
+
 
 def drop_paper_percentage(papers, percentage=0.5):
     shuffle(papers)
@@ -66,7 +65,7 @@ def drop_paper_percentage(papers, percentage=0.5):
     return removed
 
 
-def papers_from_files(dataset, n_jobs=1, debug=False):
+def papers_from_files(dataset, n_jobs=1, use_sdict=True, debug=False):
     """
     Loads a bunch of files into a list of papers,
     optionally sorted by id
@@ -74,11 +73,11 @@ def papers_from_files(dataset, n_jobs=1, debug=False):
     if dataset == "acm":
         return load_acm(ACM_PATH)
     elif dataset == "cite":
-        return load_citeworth(CITEWORTH_PATH)
+        return load_citeworth(CITEWORTH_PATH, use_sdict)
     elif dataset == "cite2":
-        return load_citeworth(CITE2_PATH)
+        return load_citeworth(CITE2_PATH, use_sdict)
     elif dataset == "cite5":
-        return load_citeworth(CITE5_PATH)
+        return load_citeworth(CITE5_PATH, use_sdict)
     elif dataset == "aan":
         return load_aan(AAN_PATH)
 
@@ -91,7 +90,7 @@ def papers_from_files(dataset, n_jobs=1, debug=False):
         papers = []
         for i, fpath in enumerate(it):
             papers.extend(load_dblp(fpath))
-            print("\r{}".format(i+1), end='', flush=True)
+            print("\r{}".format(i + 1), end='', flush=True)
             if DEBUG_LIMIT and i > DEBUG_LIMIT:
                 # Stop after `DEBUG_LIMIT` files
                 # (for quick testing)
@@ -123,7 +122,7 @@ def unpack_papers(papers, aggregate=None):
             assert attr in PAPER_INFO
 
     bags_of_refs, ids, side_info, years, authors, venue, sections = [], [], {}, {}, {}, {}, {}
-    title_cnt = author_cnt = ref_cnt = venue_cnt = one_ref_cnt = year_cnt = section_cnt =  0
+    title_cnt = author_cnt = ref_cnt = venue_cnt = one_ref_cnt = year_cnt = section_cnt = 0
     for paper in papers:
         # Extract ids
         ids.append(paper["id"])
@@ -187,28 +186,31 @@ def unpack_papers(papers, aggregate=None):
             aggregated_paper_info = aggregate_paper_info(paper, aggregate)
             side_info[paper["id"]] += ' ' + aggregated_paper_info
 
-    log("Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}, year={}, sections={} one-reference={}"
-          .format(ref_cnt/len(papers), title_cnt/len(papers), author_cnt/len(papers), venue_cnt/len(papers), year_cnt/len(papers), section_cnt/len(papers), one_ref_cnt/len(papers)))
+    log(
+        "Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}, year={}, sections={} one-reference={}"
+        .format(ref_cnt / len(papers), title_cnt / len(papers), author_cnt / len(papers), venue_cnt / len(papers),
+                year_cnt / len(papers), section_cnt / len(papers), one_ref_cnt / len(papers)))
 
     # bag_of_refs and ids should have corresponding indices
     # In side info the id is the key
     # Re-use 'title' and year here because methods rely on it
-    return bags_of_refs, ids, {"title": side_info, "year": years, "author": authors, "venue": venue, "section_title" : sections }
+    return bags_of_refs, ids, {"title": side_info, "year": years, "author": authors, "venue": venue,
+                               "section_title": sections}
 
 
 def main(year, dataset, min_count=None, outfile=None, drop=1,
-        baselines=False,
-        autoencoders=False,
-        conditioned_autoencoders=False,
-        all_metadata=True,
-        use_section=False,
-        n_code=50,
-        n_hidden=100,
-        val_year=-1):
+         baselines=False,
+         autoencoders=False,
+         conditioned_autoencoders=False,
+         all_metadata=True,
+         use_section=False,
+         use_sdict=True,
+         n_code=50,
+         n_hidden=100,
+         val_year=-1):
     """ Main function for training and evaluating AAE methods on DBLP data """
 
     assert baselines or autoencoders or conditioned_autoencoders, "Please specify what to run"
-
 
     AE_PARAMS['n_code'] = n_code
     AE_PARAMS['n_hidden'] = n_hidden
@@ -218,7 +220,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
         CONDITIONS = ConditionList([
             ('title', PretrainedWordEmbeddingCondition(VECTORS)),
             ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
-            ('author', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
+            ('author', CategoricalCondition(embedding_dim=32, reduce="sum",  # vocab_size=0.01,
                                             sparse=False, embedding_on_gpu=True))
         ])
     elif not use_section:
@@ -227,7 +229,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     else:
         CONDITIONS = ConditionList([
             ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-            #('section_title', PretrainedWordEmbeddingCondition(VECTORS))
+            # ('section_title', PretrainedWordEmbeddingCondition(VECTORS))
             ('section_title', CategoricalCondition(embedding_dim=32, reduce='sum', sparse=False, embedding_on_gpu=True))
         ])
     #### CONDITOINS defined
@@ -241,9 +243,8 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
             RandomBaseline(),
             MostPopular(),
             Countbased()
-            #SVDRecommender(1000, use_title=False)
+            # SVDRecommender(1000, use_title=False)
         ]
-
 
         ALL_MODELS += BASELINES
 
@@ -261,7 +262,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
                            conditions=None,
                            gen_lr=0.001,
                            reg_lr=0.001,
-                            **AE_PARAMS),
+                           **AE_PARAMS),
             VAERecommender(conditions=None, **AE_PARAMS),
             DAERecommender(conditions=None, **AE_PARAMS)
         ]
@@ -270,7 +271,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     if conditioned_autoencoders:
         # Model with metadata (metadata used as set in CONDITIONS above)
         CONDITIONED_AUTOENCODERS = [
-            #AAERecommender(adversarial=False,
+            # AAERecommender(adversarial=False,
             #               conditions=CONDITIONS,
             #               lr=0.001,
             #               **AE_PARAMS),
@@ -278,23 +279,22 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
                            conditions=CONDITIONS,
                            gen_lr=0.001,
                            reg_lr=0.001,
-                            **AE_PARAMS)
-            #DecodingRecommender(CONDITIONS,
+                           **AE_PARAMS)
+            # DecodingRecommender(CONDITIONS,
             #                    n_epochs=100, batch_size=1000, optimizer='adam',
             #                    n_hidden=100, lr=0.001, verbose=True),
-            #VAERecommender(conditions=CONDITIONS, **AE_PARAMS),
-            #DAERecommender(conditions=CONDITIONS, **AE_PARAMS)
+            # VAERecommender(conditions=CONDITIONS, **AE_PARAMS),
+            # DAERecommender(conditions=CONDITIONS, **AE_PARAMS)
         ]
         ALL_MODELS += CONDITIONED_AUTOENCODERS
 
-
     print("Finished preparing models:", *ALL_MODELS, sep='\n\t')
 
-    papers = papers_from_files( dataset, n_jobs=4)
+    papers = papers_from_files(dataset, n_jobs=4)
 
-    #removing = 0.5
-    #print("Too much entries. Removing {}% of entries".format(removing*100))
-    #drop_paper_percentage(papers,removing)
+    # removing = 0.5
+    # print("Too much entries. Removing {}% of entries".format(removing*100))
+    # drop_paper_percentage(papers,removing)
 
     print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)
@@ -306,7 +306,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
         print("[MI] min Count:", min_count)
         tmp = bags.build_vocab(min_count=min_count, max_features=None)
         mi = compute_mutual_info(tmp, conditions=None, include_labels=True,
-                                  normalize=True)
+                                 normalize=True)
         with open('mi.csv', 'a') as mifile:
             print(dataset, min_count, mi, sep=',', file=mifile)
 
@@ -315,7 +315,6 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
 
     log("Whole dataset:")
     log(bags)
-
 
     u = len(set(bags.owner_attributes['title']))
     log(f"Keeping {u} papers")
@@ -331,10 +330,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('year', type=int,
                         help='First year of the testing set.')
-    parser.add_argument('--val',type=int, default=-1, help='First year of the validation set. If not supplied no validation set will be used')
+    parser.add_argument('--val', type=int, default=-1,
+                        help='First year of the validation set. If not supplied no validation set will be used')
     parser.add_argument('-d', '--dataset', type=str,
                         help="Parse the DBLP,Citeworth or ACM dataset", default="acm",
-                        choices=["dblp", "acm", "cite", "cite2","cite5", "aan"])
+                        choices=["dblp", "acm", "cite", "cite2", "cite5", "aan"])
     parser.add_argument('-m', '--min-count', type=int,
                         help='Pruning parameter', default=None)
     parser.add_argument('-o', '--outfile',
@@ -355,6 +355,7 @@ if __name__ == '__main__':
     parser.add_argument('--conditioned_autoencoders', default=False,
                         action='store_true')
     parser.add_argument('--use_section', default=False, action='store_true')
+    parser.add_argument('--use_sdict', default=False, action='store_true')
     args = parser.parse_args()
 
     # Drop could also be a callable according to evaluation.py but not managed as input parameter
@@ -366,11 +367,12 @@ if __name__ == '__main__':
     utils.log.LOGFILE = Path(args.outfile)
 
     main(year=args.year, dataset=args.dataset, min_count=args.min_count, outfile=args.outfile, drop=drop,
-            all_metadata=args.all_metadata,
-            baselines=args.baselines,
-            autoencoders=args.autoencoders,
-            conditioned_autoencoders=args.conditioned_autoencoders,
-            use_section=args.use_section,
-            n_code=args.code,
-            n_hidden=args.hidden,
-            val_year=args.val)
+         all_metadata=args.all_metadata,
+         baselines=args.baselines,
+         autoencoders=args.autoencoders,
+         conditioned_autoencoders=args.conditioned_autoencoders,
+         use_section=args.use_section,
+         use_sdict=args.use_sdict,
+         n_code=args.code,
+         n_hidden=args.hidden,
+         val_year=args.val)
