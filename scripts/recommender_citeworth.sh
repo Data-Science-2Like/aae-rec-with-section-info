@@ -3,13 +3,13 @@
 DATASET=cite5
 DATASET_YEAR=2019
 VAL_YEAR=2018
-OUTPUT_PREFIX=/media/nvme2n1/project_struct_cite/aae/final_cite
+OUTPUT_PREFIX=/media/nvme2n1/project_struct_cite/aae/final_cite_sec
 
 #THRES=1
 mkdir -p $OUTPUT_PREFIX
 for RUN in 1 2 3
 do
-    for THRES in 5 10 15 20 25
+    for THRES in 1 2 3 4 #5 10 15 20 25
     do
         for DROP in 0.2 0.5 0.8
         do

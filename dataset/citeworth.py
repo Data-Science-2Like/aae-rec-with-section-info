@@ -27,7 +27,8 @@ def load_citeworth(path):
     rename_key(data,'paper_title','title')
     # rename_key(data,'paper_authors','authors')
     rename_key(data, 'paper_year','year')
-    rename_key(data, 'outgoing_citations', 'references')
+    #rename_key(data, 'outgoing_citations', 'references')
+    rename_key(data, 'outgoing_citations_in_paragraph', 'references')
     rename_key(data,'paper_id','id')
 
     for entry in data:
