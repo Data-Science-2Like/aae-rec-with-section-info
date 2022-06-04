@@ -166,12 +166,13 @@ class P(RankingMetric):
         else:
             return ps
 
+
 class R(RankingMetric):
     def __init__(self, k=None):
         super().__init__(k=k)
 
     def __call__(self, y_true, y_pred, average=True):
-        rs = super().__call__(y_true,y_pred)
+        rs = super().__call__(y_true, y_pred)
         # we want to know how many true items have been recalled of all true items
         retrieved = (rs > 0).sum(axis=1)
         # print(f"Shape {retrieved.shape}, max: {np.max(retrieved)}, min: {np.min(retrieved)}")
@@ -190,6 +191,7 @@ class R(RankingMetric):
         else:
             return re
 
+
 BOUNDED_METRICS = {
     # (bounded) ranking metrics
     '{}@{}'.format(M.__name__.lower(), k): M(k)
@@ -199,7 +201,7 @@ BOUNDED_METRICS['P@1'] = P(1)
 
 RECALL_METRICS = {
     '{}@{}'.format(M.__name__.lower(), k): M(k)
-    for M in [R] for k in [5, 10, 20,500,2000]
+    for M in [R] for k in [5, 10, 20, 500, 2000]
 }
 
 UNBOUNDED_METRICS = {
@@ -286,13 +288,15 @@ class Evaluation(object):
                  metrics=METRICS,
                  logfile=sys.stdout,
                  logdir=None,
-                 val_year=-1):
+                 val_year=-1,
+                 eval_each=False):
         self.dataset = dataset
         self.year = year
         self.val_year = val_year
         self.metrics = metrics
         self.logfile = logfile
         self.logdir = logdir
+        self.eval_each = eval_each  # specifies if evaluation metric should be calculated each epoch
 
         self.save_model = Path('./serialize/aae.pickle')
 
@@ -300,7 +304,7 @@ class Evaluation(object):
         self.x_test, self.y_test = None, None
         if self.val_year > 0:
             self.val_set = None
-            #self.x_val, self.y_val = None, None
+            # self.x_val, self.y_val = None, None
 
     def setup(self, seed=42, min_elements=1, max_features=None,
               min_count=None, drop=1):
@@ -315,9 +319,10 @@ class Evaluation(object):
         random.seed(seed)
         np.random.seed(seed)
 
-        train_set, test_set, val_set = None,None,None
+        train_set, test_set, val_set = None, None, None
         if self.val_year > 0:
-            train_set, val_set, test_set = self.dataset.train_val_test_split(val_year=self.val_year,test_year=self.year)
+            train_set, val_set, test_set = self.dataset.train_val_test_split(val_year=self.val_year,
+                                                                             test_year=self.year)
         else:
             train_set, test_set = self.dataset.train_test_split(on_year=self.year)
 
@@ -339,7 +344,7 @@ class Evaluation(object):
         train_set.prune_(min_elements=min_elements)
         test_set.prune_(min_elements=min_elements)
         if val_set is not None:
-             val_set.prune_(min_elements=min_elements)
+            val_set.prune_(min_elements=min_elements)
         log("Train:", train_set)
         if val_set is not None:
             log("Val:", val_set)
@@ -353,7 +358,7 @@ class Evaluation(object):
         test_set.data = noisy
         log("-" * 80)
 
-        #if val_set is not None:
+        # if val_set is not None:
         #    noisy_val, missing_val = corrupt_sets(val_set.data, drop=drop)
         #    assert len(noisy_val) == len(missing_val) == len(val_set)
         #    val_set.data = noisy_val
@@ -365,7 +370,6 @@ class Evaluation(object):
 
         # THE GOLD
         self.y_test = lists2sparse(missing, test_set.size(1)).tocsr(copy=False)
-
 
         self.train_set = train_set
         self.test_set = test_set
@@ -395,7 +399,9 @@ class Evaluation(object):
             test_set = self.test_set.clone()
             t_0 = timer()
             if self.val_set is not None:
-                recommender.train(train_set,self.val_set)
+                recommender.train(train_set, self.val_set)
+            elif self.eval_each:
+                recommender.train(train_set, eval_each=True, eval_cb=self.metrics_calculation)
             else:
                 recommender.train(train_set)
             log("Training took {} seconds."
@@ -403,7 +409,7 @@ class Evaluation(object):
             # torch.save(recommender.state_dict(), "1epoch_test.model")
             split_metrics_calculation = False
             if self.save_model:
-                pickle.dump(recommender, open(self.save_model,"wb"))
+                pickle.dump(recommender, open(self.save_model, "wb"))
                 log("Serialized to {}".format(self.save_model))
             t_1 = timer()
             total_result = None
@@ -472,11 +478,30 @@ class Evaluation(object):
                 log("\nResults:\n")
                 for metric, (mean, std) in zip(self.metrics, results):
                     log("- {}: {} ({})".format(metric, mean, std))
-                    log("- {}: {} ({})".format(metric, mean,std), logfile=Path('test.txt'))
+                    log("- {}: {} ({})".format(metric, mean, std), logfile=Path('test.txt'))
 
                 log("\nOverall time: {} seconds."
                     .format(timedelta(seconds=timer() - t_0)))
                 log('-' * 79)
+
+    def metrics_calculation(self, model):
+        y_pred = model.predict(self.test_set)
+        if sp.issparse(y_pred):
+            y_pred = y_pred.toarray()
+        else:
+            # dont hide that we are assuming an ndarray to be returned
+            y_pred = np.asarray(y_pred)
+
+        # set likelihood of documents that are already cited to zero, so
+        # they don't influence evaluation
+        y_pred = remove_non_missing(y_pred, self.x_test, copy=True)
+        t_1 = timer()
+        results = evaluate(self.y_test, y_pred, metrics=self.metrics, batch_size=batch_size)
+        log("Evaluation took {} seconds."
+            .format(timedelta(seconds=timer() - t_1)))
+
+        for metric, (mean, std) in zip(self.metrics, results):
+            log("- {}: {} ({})".format(metric, mean, std))
 
 
 if __name__ == '__main__':

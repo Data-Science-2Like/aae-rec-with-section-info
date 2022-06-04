@@ -111,7 +111,7 @@ def aggregate_paper_info(paper, attributes):
     return ' '.join(acc)
 
 
-def unpack_papers(papers, aggregate=None):
+def unpack_papers(papers, aggregate=None,end_year=-1):
     """
     Unpacks list of papers in a way that is compatible with our Bags dataset
     format. It is not mandatory that papers are sorted.
@@ -124,6 +124,10 @@ def unpack_papers(papers, aggregate=None):
     bags_of_refs, ids, side_info, years, authors, venue, sections = [], [], {}, {}, {}, {}, {}
     title_cnt = author_cnt = ref_cnt = venue_cnt = one_ref_cnt = year_cnt = section_cnt = 0
     for paper in papers:
+
+        if 0 < end_year <= int(paper['year']):
+            continue
+
         # Extract ids
         ids.append(paper["id"])
         # Put all ids of cited papers in here
@@ -207,7 +211,9 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
          use_sdict=True,
          n_code=50,
          n_hidden=100,
-         val_year=-1):
+         val_year=-1,
+         end_year=-1,
+         eval_each=False):
     """ Main function for training and evaluating AAE methods on DBLP data """
 
     assert baselines or autoencoders or conditioned_autoencoders, "Please specify what to run"
@@ -332,6 +338,7 @@ if __name__ == '__main__':
                         help='First year of the testing set.')
     parser.add_argument('--val', type=int, default=-1,
                         help='First year of the validation set. If not supplied no validation set will be used')
+    parser.add_argument('--end', type=int, default=-1, help='If Specified every paper of this year and newer will be dropped and not be used.')
     parser.add_argument('-d', '--dataset', type=str,
                         help="Parse the DBLP,Citeworth or ACM dataset", default="acm",
                         choices=["dblp", "acm", "cite", "cite2", "cite5", "aan"])
@@ -356,6 +363,7 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument('--use_section', default=False, action='store_true')
     parser.add_argument('--use_sdict', default=False, action='store_true')
+    parser.add_argument('--eval_each', default=False, action='store_true')
     args = parser.parse_args()
 
     # Drop could also be a callable according to evaluation.py but not managed as input parameter
@@ -375,4 +383,6 @@ if __name__ == '__main__':
          use_sdict=args.use_sdict,
          n_code=args.code,
          n_hidden=args.hidden,
-         val_year=args.val)
+         val_year=args.val,
+         end_year=args.end,
+         eval_each=args.eval_each)

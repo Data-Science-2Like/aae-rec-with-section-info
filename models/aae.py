@@ -31,19 +31,20 @@ TINY = 1e-12
 STATUS_FORMAT = "[ R: {:.4f} | D: {:.4f} | G: {:.4f} ]"
 
 
-
 def assert_condition_callabilities(conditions):
     raise DeprecationWarning("Use _check_conditions(conditions, condition_data) instead")
     if type(conditions) == type(True):
         pass
     else:
-        assert type(conditions) != type("") and hasattr(conditions,'__iter__'), "Conditions needs to be a list of different conditions. It is a {} now.".format(type(conditions))
+        assert type(conditions) != type("") and hasattr(conditions,
+                                                        '__iter__'), "Conditions needs to be a list of different conditions. It is a {} now.".format(
+            type(conditions))
 
 
 # TODO: pull this out, so its generally available
 # TODO: put it into use at other points in class
 # TODO: ensure features are appended correctly
-def concat_side_info(vectorizer,training_set,side_info_subset):
+def concat_side_info(vectorizer, training_set, side_info_subset):
     """
     Constructing an np.array with having the concatenated features in shape[1]
     :param training_set: Bag class dataset,
@@ -64,7 +65,7 @@ def concat_side_info(vectorizer,training_set,side_info_subset):
 
 
 def log_losses(*losses):
-    print('\r'+STATUS_FORMAT.format(*losses), end='', flush=True)
+    print('\r' + STATUS_FORMAT.format(*losses), end='', flush=True)
 
 
 def sample_categorical(size):
@@ -95,8 +96,9 @@ PRIOR_ACTIVATIONS = {
 
 class Encoder(nn.Module):
     """ Three-layer Encoder """
+
     def __init__(self, n_input, n_hidden, n_code, final_activation=None,
-                 normalize_inputs=True, dropout=(.2,.2), activation='ReLU'):
+                 normalize_inputs=True, dropout=(.2, .2), activation='ReLU'):
         super(Encoder, self).__init__()
         self.lin1 = nn.Linear(n_input, n_hidden)
         self.act1 = getattr(nn, activation)()
@@ -140,7 +142,8 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     """ Decoder """
-    def __init__(self, n_code, n_hidden, n_output, dropout=(.2,.2), activation='ReLU'):
+
+    def __init__(self, n_code, n_hidden, n_output, dropout=(.2, .2), activation='ReLU'):
         super(Decoder, self).__init__()
         self.lin1 = nn.Linear(n_code, n_hidden)
         self.lin2 = nn.Linear(n_hidden, n_hidden)
@@ -172,7 +175,8 @@ class Decoder(nn.Module):
 
 class Discriminator(nn.Module):
     """ Discriminator """
-    def __init__(self, n_code, n_hidden, dropout=(.2,.2), activation='ReLU'):
+
+    def __init__(self, n_code, n_hidden, dropout=(.2, .2), activation='ReLU'):
         super(Discriminator, self).__init__()
         self.lin1 = nn.Linear(n_code, n_hidden)
         self.lin2 = nn.Linear(n_hidden, n_hidden)
@@ -196,8 +200,6 @@ class Discriminator(nn.Module):
         act = self.drop2(act)
         act = self.act2(act)
 
-
-
         # act = F.dropout(self.lin1(inp), p=self.dropout[0], training=self.training)
         # act = F.relu(act)
         # act = F.dropout(self.lin2(act), p=self.dropout[1], training=self.training)
@@ -210,6 +212,7 @@ TORCH_OPTIMIZERS = {
     'adam': optim.Adam
 }
 
+
 class AutoEncoder():
     ### DONE Adapt to generic condition ###
     def __init__(self,
@@ -221,7 +224,7 @@ class AutoEncoder():
                  optimizer='adam',
                  normalize_inputs=True,
                  activation='ReLU',
-                 dropout=(.2,.2),
+                 dropout=(.2, .2),
                  conditions=None,
                  verbose=True):
 
@@ -254,7 +257,6 @@ class AutoEncoder():
         self.dec.train()
         if self.conditions:
             self.conditions.train()
-
 
     def ae_step(self, batch, condition_data=None):
         """
@@ -308,7 +310,6 @@ class AutoEncoder():
         ### DONE Adapt to generic condition ###
         _check_conditions(self.conditions, condition_data)
 
-
         if y is not None:
             raise ValueError("(Semi-)supervised usage not supported")
         # Transform to Torch (Cuda) Variable, shift batch to GPU
@@ -333,7 +334,7 @@ class AutoEncoder():
             log_losses(recon_loss, 0, 0)
         return self
 
-    def fit(self, X, y=None, val_data= None, val_cond = None, condition_data=None):
+    def fit(self, X, y=None, val_data=None, val_cond=None, condition_data=None):
         """
         :param X: np.array, the base data from Bag class
         :param y: dummy variable, throws Error if used
@@ -394,7 +395,6 @@ class AutoEncoder():
             else:
                 X_shuf = sklearn.utils.shuffle(X)
 
-        
             for start in range(0, X.shape[0], self.batch_size):
                 end = start + self.batch_size
                 X_batch = X_shuf[start:end].toarray()
@@ -414,19 +414,18 @@ class AutoEncoder():
                 for start in range(0, val_data.shape[0], self.batch_size):
                     end = start + self.batch_size
                     val_batch = val_data[start:end].toarray()
-                    cond_batch = [c[start:end] for c  in val_cond]
+                    cond_batch = [c[start:end] for c in val_cond]
                     val_batch = Variable(torch.FloatTensor(val_batch))
                     if torch.cuda.is_available():
                         val_batch = val_batch.cuda()
                     val_loss += float(self.ae_step(val_batch, condition_data=cond_batch))
                     self.zero_grad()
 
-
                 print(f'\t\t Validation Loss: {val_loss}')
                 if min_valid_loss > val_loss:
                     log(f'Validation Loss Decreased({min_valid_loss:.6f}--->{val_loss:.6f})')
                     min_valid_loss = val_loss
-                    best_epoch = epoch +1
+                    best_epoch = epoch + 1
             if self.verbose:
                 # Clean up after flushing batch loss printings
                 print()
@@ -473,6 +472,7 @@ class AutoEncoder():
 
 class DecodingRecommender(Recommender):
     """ Only the decoder part of the AAE, basically 2-MLP """
+
     ### DONE Adapt to generic condition ###
     def __init__(self, conditions, n_epochs=100, batch_size=100, optimizer='adam',
                  n_hidden=100, lr=0.001, verbose=True, **mlp_params):
@@ -562,7 +562,6 @@ class DecodingRecommender(Recommender):
         condition_data = self.conditions.fit_transform(condition_data_raw)
         self.fit(condition_data, Y)
 
-
     def predict(self, test_set):
         ### DONE Adapt to generic condition ###
         n_users = test_set.size(0)
@@ -590,15 +589,14 @@ class DecodingRecommender(Recommender):
                 res = self.mlp(inputs)
                 # Shift results back to cpu
                 batch_results.append(res.cpu().numpy())
-        
+
         y_pred = np.vstack(batch_results)
         return y_pred
 
 
-
-
 class AdversarialAutoEncoder(AutoEncoderMixin):
     """ Adversarial Autoencoder """
+
     ### DONE Adapt to generic condition ###
     def __init__(self,
                  n_hidden=100,
@@ -614,10 +612,14 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                  activation='ReLU',
                  dropout=(.2, .2),
                  conditions=None,
-                 verbose=True):
+                 verbose=True,
+                 eval_each=False,
+                 eval_cb=(lambda m: print('Empty'))):
         # Build models
         self.prior = prior.lower()
         self.prior_scale = prior_scale
+        self.eval_each = eval_each
+        self.eval_cb = eval_cb
 
         # Encoder final activation depends on prior distribution
         self.prior_sampler = PRIOR_SAMPLERS[self.prior]
@@ -642,7 +644,6 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.activation = activation
 
         self.conditions = conditions
-
 
     def __str__(self):
         desc = "Adversarial Autoencoder"
@@ -709,7 +710,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.dec.zero_grad()
         if use_condition:
             self.conditions.zero_grad()
-    
+
         # Compute gradients
         recon_loss.backward()
 
@@ -814,7 +815,6 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.gen_optim = optimizer_gen(self.enc.parameters(), lr=self.reg_lr)
         self.disc_optim = optimizer_gen(self.disc.parameters(), lr=self.reg_lr)
 
-
         best_epoch = 0
 
         # do the actual training
@@ -854,7 +854,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                 for start in range(0, val_data.shape[0], self.batch_size):
                     end = start + self.batch_size
                     val_batch = val_data[start:end].toarray()
-                    cond_batch = [c[start:end] for c  in val_cond]
+                    cond_batch = [c[start:end] for c in val_cond]
                     val_batch = Variable(torch.FloatTensor(val_batch))
                     if torch.cuda.is_available():
                         val_batch = val_batch.cuda()
@@ -867,12 +867,17 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                     print(f'Validation Loss Decreased({min_valid_loss:.6f}--->{val_loss:.6f})')
                     min_valid_loss = val_loss
                     best_epoch = epoch + 1
+
+            if self.eval_each:
+                self.eval()
+                log("Starting validation for epoch ",epoch)
+                self.eval_cb(self)
+
             if self.verbose:
                 # Clean up after flushing batch loss printings
                 print()
         log("The best epoch was ", best_epoch)
         return self
-
 
     def predict(self, X, condition_data=None):
         ### DONE Adapt to generic condition ###
@@ -886,7 +891,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
             for start in range(0, X.shape[0], self.batch_size):
                 end = start + self.batch_size
                 # batched predictions, yet inclusive
-                X_batch = X[start:(start+self.batch_size)]
+                X_batch = X[start:(start + self.batch_size)]
                 if sp.issparse(X_batch):
                     X_batch = X_batch.toarray()
                 X_batch = torch.FloatTensor(X_batch)
@@ -926,7 +931,9 @@ class AAERecommender(Recommender):
     verbose: Print losses during training
     normalize_inputs: Whether l1-normalization is performed on the input
     """
-    def __init__(self, adversarial=True, conditions=None, **kwargs):
+
+    def __init__(self, adversarial=True, conditions=None, eval_each=False,
+                 eval_cb=(lambda m: print('Empty')) ** kwargs):
         ### DONE Adapt to generic condition ###
         """ tfidf_params get piped to either TfidfVectorizer or
         EmbeddedVectorizer.  Remaining kwargs get passed to
@@ -948,6 +955,9 @@ class AAERecommender(Recommender):
         # self.tfidf_params = tfidf_params
         self.adversarial = adversarial
 
+        self.eval_each = eval_each
+        self.eval_cb = eval_cb
+
     def __str__(self):
         ### DONE Adapt to generic condition ###
         if self.adversarial:
@@ -963,7 +973,6 @@ class AAERecommender(Recommender):
         # desc += '\nTfidf Params: ' + str(self.tfidf_params)
         # Anyways, this kind of stuff goes into the condition itself
         return desc
-
 
     def train(self, training_set, validation_set=None):
         ### DONE Adapt to generic condition ###
@@ -987,7 +996,8 @@ class AAERecommender(Recommender):
 
         if self.adversarial:
             # Pass conditions through along with hyperparams
-            self.model = AdversarialAutoEncoder(conditions=self.conditions, **self.model_params)
+            self.model = AdversarialAutoEncoder(conditions=self.conditions, eval_each=self.eval_each,
+                                                eval_cb=self.eval_cb, **self.model_params)
         else:
             # Pass conditions through along with hyperparams!
             self.model = AutoEncoder(conditions=self.conditions, **self.model_params)
@@ -1002,7 +1012,7 @@ class AAERecommender(Recommender):
                 val_cond = self.conditions.fit_transform(val_cond)
             else:
                 val_cond = None
-            self.model.fit(X,val_data=val_data, val_cond=val_cond, condition_data=condition_data)
+            self.model.fit(X, val_data=val_data, val_cond=val_cond, condition_data=condition_data)
         else:
             self.model.fit(X, condition_data=condition_data)
 
