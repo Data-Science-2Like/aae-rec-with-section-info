@@ -868,9 +868,10 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                     min_valid_loss = val_loss
                     best_epoch = epoch + 1
 
+
             if self.eval_each:
                 self.eval()
-                log("Starting validation for epoch ",epoch)
+                log("Starting validation for epoch ",epoch+1)
                 self.eval_cb(self)
 
             if self.verbose:
@@ -932,8 +933,7 @@ class AAERecommender(Recommender):
     normalize_inputs: Whether l1-normalization is performed on the input
     """
 
-    def __init__(self, adversarial=True, conditions=None, eval_each=False,
-                 eval_cb=(lambda m: print('Empty')) ** kwargs):
+    def __init__(self, adversarial=True, conditions=None, **kwargs):
         ### DONE Adapt to generic condition ###
         """ tfidf_params get piped to either TfidfVectorizer or
         EmbeddedVectorizer.  Remaining kwargs get passed to
@@ -955,9 +955,6 @@ class AAERecommender(Recommender):
         # self.tfidf_params = tfidf_params
         self.adversarial = adversarial
 
-        self.eval_each = eval_each
-        self.eval_cb = eval_cb
-
     def __str__(self):
         ### DONE Adapt to generic condition ###
         if self.adversarial:
@@ -974,7 +971,7 @@ class AAERecommender(Recommender):
         # Anyways, this kind of stuff goes into the condition itself
         return desc
 
-    def train(self, training_set, validation_set=None):
+    def train(self, training_set, validation_set=None, eval_each=False, eval_cb=(lambda m: print('Empty'))):
         ### DONE Adapt to generic condition ###
         """
         1. get basic representation
@@ -996,8 +993,8 @@ class AAERecommender(Recommender):
 
         if self.adversarial:
             # Pass conditions through along with hyperparams
-            self.model = AdversarialAutoEncoder(conditions=self.conditions, eval_each=self.eval_each,
-                                                eval_cb=self.eval_cb, **self.model_params)
+            self.model = AdversarialAutoEncoder(conditions=self.conditions, eval_each=eval_each,
+                                                eval_cb=eval_cb, **self.model_params)
         else:
             # Pass conditions through along with hyperparams!
             self.model = AutoEncoder(conditions=self.conditions, **self.model_params)
@@ -1027,5 +1024,4 @@ class AAERecommender(Recommender):
             condition_data = None
 
         pred = self.model.predict(X, condition_data=condition_data)
-
         return pred

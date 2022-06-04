@@ -99,7 +99,7 @@ def load_citeworth(path, use_synonym_dict = True):
     # apply synonym dict
     if use_synonym_dict:
         for entry in data:
-            entry['section_title'] = SYNONYM_DICT[entry['section_title']]
+            entry['section_title'] = SYNONYM_DICT[entry['section_title'].lower()]
 
     for entry in data:
         if entry['year'] and entry['year'] != None:

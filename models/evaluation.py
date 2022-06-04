@@ -401,7 +401,8 @@ class Evaluation(object):
             if self.val_set is not None:
                 recommender.train(train_set, self.val_set)
             elif self.eval_each:
-                recommender.train(train_set, eval_each=True, eval_cb=self.metrics_calculation)
+                log("Training with callback")
+                recommender.train(train_set, eval_each=True, eval_cb=(lambda m : self.metrics_calculation(recommender, m)))
             else:
                 recommender.train(train_set)
             log("Training took {} seconds."
@@ -484,8 +485,19 @@ class Evaluation(object):
                     .format(timedelta(seconds=timer() - t_0)))
                 log('-' * 79)
 
-    def metrics_calculation(self, model):
-        y_pred = model.predict(self.test_set)
+    def metrics_calculation(self, rec, model):
+        test_csr = self.test_set.tocsr()
+        if rec.conditions:
+            condition_data_raw = self.test_set.get_attributes(rec.conditions.keys())
+            # Important to not call fit here, but just transform
+            condition_data = rec.conditions.transform(condition_data_raw)
+        else:
+            condition_data = None
+
+        y_pred = model.predict(test_csr, condition_data=condition_data)
+
+        #y_pred = model.predict(self.test_set)
+
         if sp.issparse(y_pred):
             y_pred = y_pred.toarray()
         else:
@@ -496,7 +508,7 @@ class Evaluation(object):
         # they don't influence evaluation
         y_pred = remove_non_missing(y_pred, self.x_test, copy=True)
         t_1 = timer()
-        results = evaluate(self.y_test, y_pred, metrics=self.metrics, batch_size=batch_size)
+        results = evaluate(self.y_test, y_pred, metrics=self.metrics, batch_size=10000)
         log("Evaluation took {} seconds."
             .format(timedelta(seconds=timer() - t_1)))
 
