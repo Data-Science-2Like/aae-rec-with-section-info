@@ -869,7 +869,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                     best_epoch = epoch + 1
 
 
-            if self.eval_each:
+            if self.eval_each and epoch > 15:
                 self.eval()
                 log("Starting validation for epoch ",epoch+1)
                 self.eval_cb(self)
