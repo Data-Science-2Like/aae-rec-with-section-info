@@ -201,6 +201,7 @@ BOUNDED_METRICS['P@1'] = P(1)
 
 RECALL_METRICS = {
     '{}@{}'.format(M.__name__.lower(), k): M(k)
+
     for M in [R] for k in [5, 10, 20, 500, 2000]
 }
 
@@ -409,9 +410,9 @@ class Evaluation(object):
                 .format(timedelta(seconds=timer() - t_0)))
             # torch.save(recommender.state_dict(), "1epoch_test.model")
             split_metrics_calculation = False
-            if self.save_model:
-                pickle.dump(recommender, open(self.save_model, "wb"))
-                log("Serialized to {}".format(self.save_model))
+            #if self.save_model:
+            #    pickle.dump(recommender, open(self.save_model, "wb"))
+            #    log("Serialized to {}".format(self.save_model))
             t_1 = timer()
             total_result = None
             if split_metrics_calculation:
