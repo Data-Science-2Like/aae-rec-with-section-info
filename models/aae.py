@@ -1,5 +1,7 @@
 """ Adversarially Regualized Autoencoders """
 # torch
+import os.path
+
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -685,6 +687,21 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.dec.zero_grad()
         self.disc.zero_grad()
 
+    def save_model(self, folder='prefetcher', filename='test'):
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+
+        filepath = os.path.join(folder, filename)
+        state = {'enc': self.enc.state_dict(), 'dec': self.dec.state_dict(), 'disc': self.disc.state_dict()}
+        torch.save(state,filepath)
+
+    def load_model(self, folder='prefetcher', filename='test'):
+        filepath = os.path.join(folder, filename)
+        state = torch.load(filepath)
+        self.enc.load_state_dict(state['enc'])
+        self.dec.load_state_dict(state['dec'])
+        self.disc.load_state_dict(state['disc'])
+
     def ae_step(self, batch, condition_data=None):
         ### DONE Adapt to generic condition ###
         """
@@ -868,10 +885,9 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                     min_valid_loss = val_loss
                     best_epoch = epoch + 1
 
-
             if self.eval_each and epoch > 15:
                 self.eval()
-                log("Starting validation for epoch ",epoch+1)
+                log("Starting validation for epoch ", epoch + 1)
                 self.eval_cb(self)
 
             if self.verbose:
@@ -1025,3 +1041,9 @@ class AAERecommender(Recommender):
 
         pred = self.model.predict(X, condition_data=condition_data)
         return pred
+
+    def save_model(self, folder='prefetcher', filename='test'):
+        self.model.save_model(folder,filename)
+
+    def load_model(self, folder='prefetcher', filename='test'):
+        self.model.load_model(folder,filename)
