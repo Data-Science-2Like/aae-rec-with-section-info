@@ -299,7 +299,7 @@ class Evaluation(object):
         self.logdir = logdir
         self.eval_each = eval_each  # specifies if evaluation metric should be calculated each epoch
 
-        self.save_model = Path('.aae.torch')
+        self.save_model = Path('aae.torch')
 
         self.train_set, self.test_set = None, None
         self.x_test, self.y_test = None, None
@@ -412,8 +412,8 @@ class Evaluation(object):
             split_metrics_calculation = False
 
             # TODO add saving and loading of model
-            if self.save_model:
-                recommender.save_model('trained',self.save_model)
+            #if self.save_model:
+            recommender.save_model('trained',self.save_model)
 
             #if self.save_model:
             #    pickle.dump(recommender, open(self.save_model, "wb"))
