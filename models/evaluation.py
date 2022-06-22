@@ -12,9 +12,8 @@ import numpy as np
 import scipy.sparse as sp
 from tqdm import tqdm
 
-from main import VECTORS
 from models import rank_metrics as rm
-from models.condition import ConditionList, PretrainedWordEmbeddingCondition
+
 from models.datasets import corrupt_sets
 from models.transforms import lists2sparse
 
@@ -297,6 +296,7 @@ class Evaluation(object):
                  metrics=METRICS,
                  logfile=sys.stdout,
                  logdir=None,
+                 conditions=None,
                  val_year=-1,
                  eval_each=False):
         self.dataset = dataset
@@ -306,6 +306,8 @@ class Evaluation(object):
         self.logfile = logfile
         self.logdir = logdir
         self.eval_each = eval_each  # specifies if evaluation metric should be calculated each epoch
+
+        self.conditions = conditions
 
         self.save_model = Path('aae.torch')
 
@@ -503,10 +505,8 @@ class Evaluation(object):
 
     def _train_search(self, **kwargs):
 
-        CONDITIONS = ConditionList([('title', PretrainedWordEmbeddingCondition(VECTORS))])
-
         model = AAERecommender(adversarial=True,
-                           conditions=CONDITIONS,
+                           conditions=self.conditions,
                            **kwargs)
 
         train_set = self.train_set.clone()
