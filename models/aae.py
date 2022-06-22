@@ -19,9 +19,7 @@ import scipy.sparse as sp
 
 # own recommender stuff
 from models.base import Recommender
-from models.datasets import Bags
-from models.evaluation import Evaluation
-from gensim.models.keyedvectors import KeyedVectors
+
 
 from ray import tune
 
