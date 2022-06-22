@@ -503,11 +503,11 @@ class Evaluation(object):
                 log('-' * 79)
 
 
-    def _train_search(self, **kwargs):
+    def _train_search(self, config):
 
         model = AAERecommender(adversarial=True,
                            conditions=self.conditions,
-                           **kwargs)
+                           **config)
 
         train_set = self.train_set.clone()
         test_set = self.test_set.clone()
