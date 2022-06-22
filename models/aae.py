@@ -23,6 +23,8 @@ from models.datasets import Bags
 from models.evaluation import Evaluation
 from gensim.models.keyedvectors import KeyedVectors
 
+from ray import tune
+
 from .condition import _check_conditions
 
 from utils.log import log
@@ -878,6 +880,12 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                     val_loss += float(self.ae_step(val_batch, condition_data=cond_batch))
 
                     self.zero_grad()
+
+                with tune.checkpoint_dir(epoch) as checkpoint_dir:
+                    self.save_model(checkpoint_dir,'checkpoint')
+
+                tune.report(loss=val_loss)
+
 
                 print(f'\t\t Validation Loss: {val_loss}')
                 if min_valid_loss > val_loss:

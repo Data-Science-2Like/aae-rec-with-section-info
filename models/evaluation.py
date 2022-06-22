@@ -12,9 +12,17 @@ import numpy as np
 import scipy.sparse as sp
 from tqdm import tqdm
 
+from main import VECTORS
 from models import rank_metrics as rm
+from models.condition import ConditionList, PretrainedWordEmbeddingCondition
 from models.datasets import corrupt_sets
 from models.transforms import lists2sparse
+
+from ray import tune
+from ray.tune import CLIReporter
+from ray.tune.schedulers import ASHAScheduler
+from functools import partial
+from models.aae import AAERecommender
 
 from utils.log import log
 
@@ -403,7 +411,8 @@ class Evaluation(object):
                 recommender.train(train_set, self.val_set)
             elif self.eval_each:
                 log("Training with callback")
-                recommender.train(train_set, eval_each=True, eval_cb=(lambda m : self.metrics_calculation(recommender, m)))
+                recommender.train(train_set, eval_each=True,
+                                  eval_cb=(lambda m: self.metrics_calculation(recommender, m)))
             else:
                 recommender.train(train_set)
             log("Training took {} seconds."
@@ -412,10 +421,10 @@ class Evaluation(object):
             split_metrics_calculation = False
 
             # TODO add saving and loading of model
-            #if self.save_model:
-            recommender.save_model('trained',self.save_model)
+            # if self.save_model:
+            recommender.save_model('trained', self.save_model)
 
-            #if self.save_model:
+            # if self.save_model:
             #    pickle.dump(recommender, open(self.save_model, "wb"))
             #    log("Serialized to {}".format(self.save_model))
             t_1 = timer()
@@ -491,6 +500,67 @@ class Evaluation(object):
                     .format(timedelta(seconds=timer() - t_0)))
                 log('-' * 79)
 
+
+    def _train_search(self, **kwargs):
+
+        CONDITIONS = ConditionList([('title', PretrainedWordEmbeddingCondition(VECTORS))])
+
+        model = AAERecommender(adversarial=True,
+                           conditions=CONDITIONS,
+                           **kwargs)
+
+        train_set = self.train_set.clone()
+        test_set = self.test_set.clone()
+        t_0 = timer()
+        if self.val_set is not None:
+            model.train(train_set, test_set)
+
+    def grid_search(self, batch_size=None):
+
+        # grid search after https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html
+
+        if None in (self.train_set, self.test_set, self.x_test, self.y_test):
+            raise UserWarning("Call .setup() before running the experiment")
+        if self.val_year > 0 and self.val_set is None:
+            raise UserWarning("No validation data found")
+
+        config = {
+            'n_code': tune.choice([50, 60, 70, 80, 90, 100]),
+            'n_hidden': tune.choice([100, 120, 140, 160, 180, 200, 220, 240]),
+            'l1': tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+            'l2': tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+            'gen_lr': tune.loguniform(1e-4, 1e-1),
+            'reg_lr': tune.loguniform(1e-4, 1e-1)
+        }
+
+        max_num_epochs = 30
+        num_samples = 10
+
+        scheduler = ASHAScheduler(
+            metric='loss',
+            mode='min',
+            max_t=max_num_epochs,
+            grace_period=1,
+            reduction_factor=2
+        )
+        reporter = CLIReporter(
+            metric_columns=["loss", "training_iteration"])
+
+        result = tune.run(
+            self._train_search,
+            resources_per_trial={"cpu": 1, "gpu": 1},
+            config=config,
+            num_samples=num_samples,
+            scheduler=scheduler,
+            progress_reporter=reporter)
+
+        best_trial = result.get_best_trial("loss", "min", "last")
+        print("Best trial config: {}".format(best_trial.config))
+        print("Best trial final validation loss: {}".format(
+            best_trial.last_result["loss"]))
+        print("Best trial final validation accuracy: {}".format(
+            best_trial.last_result["accuracy"]))
+
     def metrics_calculation(self, rec, model):
         test_csr = self.test_set.tocsr()
         if rec.conditions:
@@ -502,7 +572,7 @@ class Evaluation(object):
 
         y_pred = model.predict(test_csr, condition_data=condition_data)
 
-        #y_pred = model.predict(self.test_set)
+        # y_pred = model.predict(self.test_set)
 
         if sp.issparse(y_pred):
             y_pred = y_pred.toarray()

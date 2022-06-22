@@ -329,7 +329,12 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
 
     evaluation.setup(min_count=min_count, min_elements=1, drop=drop)
     log("~ Partial List + Titles + Author + Venue", "~" * 42)
-    evaluation(ALL_MODELS, batch_size=1000)
+
+    do_grid_search = True
+    if do_grid_search:
+        evaluation.grid_search(batch_size=1000)
+    else:
+        evaluation(ALL_MODELS, batch_size=1000)
 
 
 if __name__ == '__main__':
