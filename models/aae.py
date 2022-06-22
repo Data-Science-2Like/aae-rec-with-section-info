@@ -20,7 +20,6 @@ import scipy.sparse as sp
 # own recommender stuff
 from models.base import Recommender
 
-
 from ray import tune
 
 from .condition import _check_conditions
@@ -616,7 +615,8 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                  conditions=None,
                  verbose=True,
                  eval_each=False,
-                 eval_cb=(lambda m: print('Empty'))):
+                 eval_cb=(lambda m: print('Empty')),
+                 checkpoint_dir=None):
         # Build models
         self.prior = prior.lower()
         self.prior_scale = prior_scale
@@ -646,6 +646,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.activation = activation
 
         self.conditions = conditions
+        self.checkpoint_dir = checkpoint_dir
 
     def __str__(self):
         desc = "Adversarial Autoencoder"
@@ -693,7 +694,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
 
         filepath = os.path.join(folder, filename)
         state = {'enc': self.enc.state_dict(), 'dec': self.dec.state_dict(), 'disc': self.disc.state_dict()}
-        torch.save(state,filepath)
+        torch.save(state, filepath)
 
     def load_model(self, folder='prefetcher', filename='test'):
         filepath = os.path.join(folder, filename)
@@ -820,6 +821,8 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                                   dropout=self.dropout,
                                   activation=self.activation)
 
+
+
         if torch.cuda.is_available():
             self.enc = self.enc.cuda()
             self.dec = self.dec.cuda()
@@ -831,6 +834,9 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         # Regularization
         self.gen_optim = optimizer_gen(self.enc.parameters(), lr=self.reg_lr)
         self.disc_optim = optimizer_gen(self.disc.parameters(), lr=self.reg_lr)
+
+        if self.checkpoint_dir:
+            self.load_model(self.checkpoint_dir,'checkpoint')
 
         best_epoch = 0
 
@@ -880,10 +886,9 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                     self.zero_grad()
 
                 with tune.checkpoint_dir(epoch) as checkpoint_dir:
-                    self.save_model(checkpoint_dir,'checkpoint')
+                    self.save_model(checkpoint_dir, 'checkpoint')
 
                 tune.report(loss=val_loss)
-
 
                 print(f'\t\t Validation Loss: {val_loss}')
                 if min_valid_loss > val_loss:
@@ -993,7 +998,8 @@ class AAERecommender(Recommender):
         # Anyways, this kind of stuff goes into the condition itself
         return desc
 
-    def train(self, training_set, validation_set=None, eval_each=False, eval_cb=(lambda m: print('Empty'))):
+    def train(self, training_set, validation_set=None, checkpoint_dir=None, eval_each=False,
+              eval_cb=(lambda m: print('Empty'))):
         ### DONE Adapt to generic condition ###
         """
         1. get basic representation
@@ -1003,6 +1009,7 @@ class AAERecommender(Recommender):
         :param training_set: ???, Bag Class training set
         :return: trained self
         """
+        self.checkpoint_dir = checkpoint_dir
         print(self)
         X = training_set.tocsr()
         if self.conditions:
@@ -1049,7 +1056,7 @@ class AAERecommender(Recommender):
         return pred
 
     def save_model(self, folder='prefetcher', filename='test'):
-        self.model.save_model(folder,filename)
+        self.model.save_model(folder, filename)
 
     def load_model(self, folder='prefetcher', filename='test'):
-        self.model.load_model(folder,filename)
+        self.model.load_model(folder, filename)

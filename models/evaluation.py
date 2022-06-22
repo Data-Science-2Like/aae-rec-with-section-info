@@ -503,7 +503,7 @@ class Evaluation(object):
                 log('-' * 79)
 
 
-    def _train_search(self, config):
+    def _train_search(self, config, checkpoint_dir=None):
 
         model = AAERecommender(adversarial=True,
                            conditions=self.conditions,
@@ -527,8 +527,8 @@ class Evaluation(object):
         config = {
             'n_code': tune.choice([50, 60, 70, 80, 90, 100]),
             'n_hidden': tune.choice([100, 120, 140, 160, 180, 200, 220, 240]),
-            'l1': tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-            'l2': tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+            #'l1': tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+            #'l2': tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
             'gen_lr': tune.loguniform(1e-4, 1e-1),
             'reg_lr': tune.loguniform(1e-4, 1e-1)
         }
