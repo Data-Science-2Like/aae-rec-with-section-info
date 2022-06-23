@@ -17,14 +17,18 @@ from models import rank_metrics as rm
 from models.datasets import corrupt_sets
 from models.transforms import lists2sparse
 
+import ray
 from ray import tune
 from ray.tune import CLIReporter
-from ray.tune.schedulers import ASHAScheduler
+from ray.tune.schedulers import ASHAScheduler, HyperBandScheduler
 from functools import partial
 from models.aae import AAERecommender
 
 from utils.log import log
 
+import logging
+
+logging.basicConfig(level=logging.INFO) 
 
 def argtopk(X, k):
     """
@@ -509,8 +513,8 @@ class Evaluation(object):
                            conditions=self.conditions,
                            **config)
 
-        train_set = self.train_set.clone()
-        test_set = self.test_set.clone()
+        #train_set = self.train_set.clone()
+        #test_set = self.test_set.clone()
         t_0 = timer()
         if self.val_set is not None:
             model.train(train_set, test_set)
@@ -523,6 +527,8 @@ class Evaluation(object):
             raise UserWarning("Call .setup() before running the experiment")
         if self.val_year > 0 and self.val_set is None:
             raise UserWarning("No validation data found")
+
+        ray.init(local_mode=True)
 
         config = {
             'n_code': tune.choice([50, 60, 70, 80, 90, 100]),
@@ -548,7 +554,7 @@ class Evaluation(object):
 
         result = tune.run(
             self._train_search,
-            resources_per_trial={"cpu": 1, "gpu": 1},
+            resources_per_trial={"gpu": 1},
             config=config,
             num_samples=num_samples,
             scheduler=scheduler,

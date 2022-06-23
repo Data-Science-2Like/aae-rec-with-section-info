@@ -693,7 +693,13 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
             os.mkdir(folder)
 
         filepath = os.path.join(folder, filename)
-        state = {'enc': self.enc.state_dict(), 'dec': self.dec.state_dict(), 'disc': self.disc.state_dict()}
+        state = {'enc': self.enc.state_dict(), 
+                'dec': self.dec.state_dict(), 
+                'disc': self.disc.state_dict(),
+                'enc_optim' : self.enc_optim.state_dict(),
+                'dec_optim' : self.dec_optim.state_dict(),
+                'gen_optim' : self.gen_optim.state_dict(),
+                'disc_optim' : self.disc_optim.state_dict()}
         torch.save(state, filepath)
 
     def load_model(self, folder='prefetcher', filename='test'):
@@ -702,6 +708,12 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.enc.load_state_dict(state['enc'])
         self.dec.load_state_dict(state['dec'])
         self.disc.load_state_dict(state['disc'])
+        self.enc_optim.load_state_dict(state['enc_optim'])
+        self.dec_optim.load_state_dict(state['dec_optim'])
+        self.gen_optim.load_state_dict(state['gen_optim'])
+        self.disc_optim.load_state_dict(state['disc_optim'])
+
+
 
     def ae_step(self, batch, condition_data=None):
         ### DONE Adapt to generic condition ###
@@ -1023,7 +1035,7 @@ class AAERecommender(Recommender):
         if self.adversarial:
             # Pass conditions through along with hyperparams
             self.model = AdversarialAutoEncoder(conditions=self.conditions, eval_each=eval_each,
-                                                eval_cb=eval_cb, **self.model_params)
+                                                eval_cb=eval_cb,checkpoint_dir=self.checkpoint_dir, **self.model_params)
         else:
             # Pass conditions through along with hyperparams!
             self.model = AutoEncoder(conditions=self.conditions, **self.model_params)
