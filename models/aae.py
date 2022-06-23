@@ -693,13 +693,13 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
             os.mkdir(folder)
 
         filepath = os.path.join(folder, filename)
-        state = {'enc': self.enc.state_dict(), 
-                'dec': self.dec.state_dict(), 
-                'disc': self.disc.state_dict(),
-                'enc_optim' : self.enc_optim.state_dict(),
-                'dec_optim' : self.dec_optim.state_dict(),
-                'gen_optim' : self.gen_optim.state_dict(),
-                'disc_optim' : self.disc_optim.state_dict()}
+        state = {'enc': self.enc.state_dict(),
+                 'dec': self.dec.state_dict(),
+                 'disc': self.disc.state_dict(),
+                 'enc_optim': self.enc_optim.state_dict(),
+                 'dec_optim': self.dec_optim.state_dict(),
+                 'gen_optim': self.gen_optim.state_dict(),
+                 'disc_optim': self.disc_optim.state_dict()}
         torch.save(state, filepath)
 
     def load_model(self, folder='prefetcher', filename='test'):
@@ -712,8 +712,6 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.dec_optim.load_state_dict(state['dec_optim'])
         self.gen_optim.load_state_dict(state['gen_optim'])
         self.disc_optim.load_state_dict(state['disc_optim'])
-
-
 
     def ae_step(self, batch, condition_data=None):
         ### DONE Adapt to generic condition ###
@@ -833,8 +831,6 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                                   dropout=self.dropout,
                                   activation=self.activation)
 
-
-
         if torch.cuda.is_available():
             self.enc = self.enc.cuda()
             self.dec = self.dec.cuda()
@@ -848,7 +844,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.disc_optim = optimizer_gen(self.disc.parameters(), lr=self.reg_lr)
 
         if self.checkpoint_dir:
-            self.load_model(self.checkpoint_dir,'checkpoint')
+            self.load_model(self.checkpoint_dir, 'checkpoint')
 
         best_epoch = 0
 
@@ -1010,6 +1006,20 @@ class AAERecommender(Recommender):
         # Anyways, this kind of stuff goes into the condition itself
         return desc
 
+    def train_grid(self, training_set, validation_set,condition_data, vald_cond, checkpoint_dir=None):
+        self.checkpoint_dir = checkpoint_dir
+
+        # Pass conditions through along with hyperparams
+        self.model = AdversarialAutoEncoder(conditions=self.conditions,
+                                            checkpoint_dir=self.checkpoint_dir,
+                                            **self.model_params)
+
+        print(self.model)
+        print(self.conditions)
+
+        self.model.fit(training_set, val_data=validation_set, val_cond=vald_cond, condition_data=condition_data)
+
+
     def train(self, training_set, validation_set=None, checkpoint_dir=None, eval_each=False,
               eval_cb=(lambda m: print('Empty'))):
         ### DONE Adapt to generic condition ###
@@ -1035,7 +1045,8 @@ class AAERecommender(Recommender):
         if self.adversarial:
             # Pass conditions through along with hyperparams
             self.model = AdversarialAutoEncoder(conditions=self.conditions, eval_each=eval_each,
-                                                eval_cb=eval_cb,checkpoint_dir=self.checkpoint_dir, **self.model_params)
+                                                eval_cb=eval_cb, checkpoint_dir=self.checkpoint_dir,
+                                                **self.model_params)
         else:
             # Pass conditions through along with hyperparams!
             self.model = AutoEncoder(conditions=self.conditions, **self.model_params)

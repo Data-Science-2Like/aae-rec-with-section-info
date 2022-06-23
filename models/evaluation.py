@@ -28,7 +28,8 @@ from utils.log import log
 
 import logging
 
-logging.basicConfig(level=logging.INFO) 
+logging.basicConfig(level=logging.INFO)
+
 
 def argtopk(X, k):
     """
@@ -506,20 +507,31 @@ class Evaluation(object):
                     .format(timedelta(seconds=timer() - t_0)))
                 log('-' * 79)
 
-
-    def _train_search(self, config, checkpoint_dir=None):
+    def _train_search(self, train, test, condition, test_condition, config, checkpoint_dir=None):
 
         model = AAERecommender(adversarial=True,
-                           conditions=self.conditions,
-                           **config)
+                               conditions=self.conditions,
+                               **config)
 
-        #train_set = self.train_set.clone()
-        #test_set = self.test_set.clone()
+        # train_set = self.train_set.clone()
+        # test_set = self.test_set.clone()
         t_0 = timer()
         if self.val_set is not None:
-            model.train(train_set, test_set)
+            model.train_grid(train, test, condition, test_condition, checkpoint_dir=checkpoint_dir)
 
     def grid_search(self, batch_size=None):
+        train_X = self.train_set.tocsr()
+        test_X = self.test_set.tocsr()
+        if self.conditions:
+            print("Fit transforming conditions:", self.conditions)
+            condition_data_raw = self.train_set.get_attributes(self.conditions.keys())
+            condition_data = self.conditions.fit_transform(condition_data_raw)
+
+            test_cond = self.test_set.get_attributes(self.conditions.keys())
+            test_cond = self.conditions.fit_transform(test_cond)
+        else:
+            print("Start of training, not using condition...", self.conditions)
+            condition_data = None
 
         # grid search after https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html
 
@@ -533,8 +545,8 @@ class Evaluation(object):
         config = {
             'n_code': tune.choice([50, 60, 70, 80, 90, 100]),
             'n_hidden': tune.choice([100, 120, 140, 160, 180, 200, 220, 240]),
-            #'l1': tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-            #'l2': tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+            # 'l1': tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
+            # 'l2': tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
             'gen_lr': tune.loguniform(1e-4, 1e-1),
             'reg_lr': tune.loguniform(1e-4, 1e-1)
         }
@@ -553,7 +565,7 @@ class Evaluation(object):
             metric_columns=["loss", "training_iteration"])
 
         result = tune.run(
-            self._train_search,
+            partial(self._train_search, train=train_X, test=test_X, condition=condition_data, test_condition=test_cond),
             resources_per_trial={"gpu": 1},
             config=config,
             num_samples=num_samples,
