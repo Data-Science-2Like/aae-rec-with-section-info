@@ -507,7 +507,7 @@ class Evaluation(object):
                     .format(timedelta(seconds=timer() - t_0)))
                 log('-' * 79)
 
-    def _train_search(self, train, test, condition, test_condition, config, checkpoint_dir=None):
+    def _train_search(self, config, checkpoint_dir=None, train=None, test=None, condition=None, test_condition=None):
 
         model = AAERecommender(adversarial=True,
                                conditions=self.conditions,
