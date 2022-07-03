@@ -81,7 +81,7 @@ def rename_key(data, old : str, new :str) -> None:
         entry[new] = entry.pop(old)
 
 
-def load_citeworth(path, use_synonym_dict = True):
+def load_citeworth(path, use_synonym_dict = True, section_divided = True):
     """ Loads a single file """
     print("Loading citworth data from", path)
     data = list()
@@ -92,8 +92,11 @@ def load_citeworth(path, use_synonym_dict = True):
     rename_key(data,'paper_title','title')
     # rename_key(data,'paper_authors','authors')
     rename_key(data, 'paper_year','year')
-    #rename_key(data, 'outgoing_citations', 'references')
-    rename_key(data, 'outgoing_citations_in_paragraph', 'references')
+    if section_divided:
+        rename_key(data, 'outgoing_citations_in_paragraph', 'references')
+    else:
+        rename_key(data, 'outgoing_citations', 'references')
+
     rename_key(data,'paper_id','id')
 
     # apply synonym dict

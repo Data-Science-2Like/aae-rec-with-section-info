@@ -25,7 +25,7 @@ from models.vae import VAERecommender
 from models.dae import DAERecommender
 from models.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
-from utils.paths import W2V_PATH, W2V_IS_BINARY, ACM_PATH, CITEWORTH_PATH, DBLP_PATH, CITE2_PATH, CITE5_PATH, AAN_PATH
+from utils.paths import W2V_PATH, W2V_IS_BINARY, ACM_PATH, CITEWORTH_PATH, DBLP_PATH, CITE2_PATH, CITE5_PATH, AAN_PATH, CITE5_PAPERS_PATH
 from dataset.aminer import load_dblp, load_acm
 from dataset.citeworth import load_citeworth
 from dataset.anthology_network import load_aan
@@ -78,6 +78,8 @@ def papers_from_files(dataset, n_jobs=1, use_sdict=True, debug=False):
         return load_citeworth(CITE2_PATH, use_sdict)
     elif dataset == "cite5":
         return load_citeworth(CITE5_PATH, use_sdict)
+    elif dataset == "cite5_papers":
+        return load_citeworth(CITE5_PAPERS_PATH, use_sdict, False)
     elif dataset == "aan":
         return load_aan(AAN_PATH)
 
@@ -346,7 +348,7 @@ if __name__ == '__main__':
     parser.add_argument('--end', type=int, default=-1, help='If Specified every paper of this year and newer will be dropped and not be used.')
     parser.add_argument('-d', '--dataset', type=str,
                         help="Parse the DBLP,Citeworth or ACM dataset", default="acm",
-                        choices=["dblp", "acm", "cite", "cite2", "cite5", "aan"])
+                        choices=["dblp", "acm", "cite", "cite2", "cite5","cite5_papers", "aan"])
     parser.add_argument('-m', '--min-count', type=int,
                         help='Pruning parameter', default=None)
     parser.add_argument('-o', '--outfile',
