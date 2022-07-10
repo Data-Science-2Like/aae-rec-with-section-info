@@ -52,7 +52,7 @@ AE_PARAMS = {
     'n_epochs': 20,
     #    'embedding': VECTORS,
     'batch_size': 5000,
-    'n_hidden': 160,
+    'n_hidden': 240,
     'normalize_inputs': True,
 }
 
@@ -210,6 +210,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
          conditioned_autoencoders=False,
          all_metadata=True,
          use_section=False,
+         only_section=False,
          use_sdict=True,
          n_code=50,
          n_hidden=100,
@@ -220,8 +221,8 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
 
     assert baselines or autoencoders or conditioned_autoencoders, "Please specify what to run"
 
-    AE_PARAMS['n_code'] = n_code
-    AE_PARAMS['n_hidden'] = n_hidden
+    #AE_PARAMS['n_code'] = n_code
+    #AE_PARAMS['n_hidden'] = n_hidden
 
     if all_metadata:
         # V2 - all metadata
@@ -231,9 +232,11 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
             ('author', CategoricalCondition(embedding_dim=32, reduce="sum",  # vocab_size=0.01,
                                             sparse=False, embedding_on_gpu=True))
         ])
-    elif not use_section:
+    elif not use_section and not only_section:
         # V1 - only title metadata
         CONDITIONS = ConditionList([('title', PretrainedWordEmbeddingCondition(VECTORS))])
+    elif only_section:
+        CONDITIONS = ConditionList([ ('section_title', CategoricalCondition(embedding_dim=32, reduce='sum', sparse=False, embedding_on_gpu=True))])
     else:
         CONDITIONS = ConditionList([
             ('title', PretrainedWordEmbeddingCondition(VECTORS)),
@@ -262,21 +265,21 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
 
     if autoencoders:
         AUTOENCODERS = [
-            AAERecommender(adversarial=False,
-                           conditions=None,
-                           lr=0.001,
-                           **AE_PARAMS),
+            #AAERecommender(adversarial=False,
+            #               conditions=None,
+            #               lr=0.001,
+            #               **AE_PARAMS),
             AAERecommender(adversarial=True,
                            conditions=None,
                            gen_lr=0.001,
                            reg_lr=0.001,
-                           **AE_PARAMS),
-            VAERecommender(conditions=None, **AE_PARAMS),
-            DAERecommender(conditions=None, **AE_PARAMS)
+                           **AE_PARAMS)
+            #VAERecommender(conditions=None, **AE_PARAMS),
+            #DAERecommender(conditions=None, **AE_PARAMS)
         ]
         ALL_MODELS += AUTOENCODERS
 
-    if conditioned_autoencoders:
+    if conditioned_autoencoders or use_section:
         # Model with metadata (metadata used as set in CONDITIONS above)
         CONDITIONED_AUTOENCODERS = [
             # AAERecommender(adversarial=False,
@@ -332,7 +335,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     evaluation.setup(min_count=min_count, min_elements=1, drop=drop)
     log("~ Partial List + Titles + Author + Venue", "~" * 42)
 
-    do_grid_search = True
+    do_grid_search = False
     if do_grid_search:
         evaluation.grid_search(batch_size=1000)
     else:
@@ -369,6 +372,7 @@ if __name__ == '__main__':
     parser.add_argument('--conditioned_autoencoders', default=False,
                         action='store_true')
     parser.add_argument('--use_section', default=False, action='store_true')
+    parser.add_argument('--only_section', default=False, action='store_true')
     parser.add_argument('--use_sdict', default=False, action='store_true')
     parser.add_argument('--eval_each', default=False, action='store_true')
     args = parser.parse_args()
@@ -387,6 +391,7 @@ if __name__ == '__main__':
          autoencoders=args.autoencoders,
          conditioned_autoencoders=args.conditioned_autoencoders,
          use_section=args.use_section,
+         only_section=args.only_section,
          use_sdict=args.use_sdict,
          n_code=args.code,
          n_hidden=args.hidden,
