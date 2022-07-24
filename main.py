@@ -25,7 +25,7 @@ from models.vae import VAERecommender
 from models.dae import DAERecommender
 from models.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
-from utils.paths import W2V_PATH, W2V_IS_BINARY, ACM_PATH, CITEWORTH_PATH, DBLP_PATH, CITE2_PATH, CITE5_PATH, AAN_PATH, CITE5_PAPERS_PATH
+from utils.paths import W2V_PATH, W2V_IS_BINARY, ACM_PATH, CITEWORTH_PATH, DBLP_PATH, CITE2_PATH, CITE5_PATH, AAN_PATH, CITE5_PAPERS_PATH, CITE7_PATH
 from dataset.aminer import load_dblp, load_acm
 from dataset.citeworth import load_citeworth
 from dataset.anthology_network import load_aan
@@ -78,6 +78,8 @@ def papers_from_files(dataset, n_jobs=1, use_sdict=True, debug=False):
         return load_citeworth(CITE2_PATH, use_sdict)
     elif dataset == "cite5":
         return load_citeworth(CITE5_PATH, use_sdict)
+    elif dataset == "cite7":
+        return load_citeworth(CITE7_PATH, use_sdict)
     elif dataset == "cite5_papers":
         return load_citeworth(CITE5_PAPERS_PATH, use_sdict, False)
     elif dataset == "aan":
@@ -124,6 +126,10 @@ def unpack_papers(papers, aggregate=None,end_year=-1):
             assert attr in PAPER_INFO
 
     bags_of_refs, ids, side_info, years, authors, venue, sections = [], [], {}, {}, {}, {}, {}
+
+    # we need to keep track of the section title additionally
+    sections_list = []
+
     title_cnt = author_cnt = ref_cnt = venue_cnt = one_ref_cnt = year_cnt = section_cnt = 0
     for paper in papers:
 
@@ -132,6 +138,8 @@ def unpack_papers(papers, aggregate=None,end_year=-1):
 
         # Extract ids
         ids.append(paper["id"])
+
+        sections_list.append(paper["section_title"])
         # Put all ids of cited papers in here
         try:
             # References may be missing
@@ -200,7 +208,7 @@ def unpack_papers(papers, aggregate=None,end_year=-1):
     # bag_of_refs and ids should have corresponding indices
     # In side info the id is the key
     # Re-use 'title' and year here because methods rely on it
-    return bags_of_refs, ids, {"title": side_info, "year": years, "author": authors, "venue": venue,
+    return bags_of_refs, ids, sections_list, {"title": side_info, "year": years, "author": authors, "venue": venue,
                                "section_title": sections}
 
 
@@ -250,8 +258,8 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     if baselines:
         # Models without metadata
         BASELINES = [
-            BM25Baseline(),
-            RandomBaseline(),
+            #BM25Baseline(),
+            #RandomBaseline(),
             MostPopular(),
             Countbased()
             # SVDRecommender(1000, use_title=False)
@@ -308,9 +316,9 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     # drop_paper_percentage(papers,removing)
 
     print("Unpacking {} data...".format(dataset))
-    bags_of_papers, ids, side_info = unpack_papers(papers)
+    bags_of_papers, ids, sections, side_info = unpack_papers(papers)
     del papers
-    bags = Bags(bags_of_papers, ids, side_info)
+    bags = Bags(bags_of_papers, ids,sections, side_info)
     if args.compute_mi:
         from models.utils import compute_mutual_info
         print("[MI] Dataset:", dataset)
@@ -351,7 +359,7 @@ if __name__ == '__main__':
     parser.add_argument('--end', type=int, default=-1, help='If Specified every paper of this year and newer will be dropped and not be used.')
     parser.add_argument('-d', '--dataset', type=str,
                         help="Parse the DBLP,Citeworth or ACM dataset", default="acm",
-                        choices=["dblp", "acm", "cite", "cite2", "cite5","cite5_papers", "aan"])
+                        choices=["dblp", "acm", "cite", "cite2", "cite5","cite5_papers", "aan", "cite7"])
     parser.add_argument('-m', '--min-count', type=int,
                         help='Pruning parameter', default=None)
     parser.add_argument('-o', '--outfile',

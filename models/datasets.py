@@ -158,6 +158,7 @@ class Bags(object):
     def __init__(self,
                  data,
                  owners,
+                 sections=None,
                  owner_attributes=None):
         """
 
@@ -169,6 +170,7 @@ class Bags(object):
         assert len(owners) == len(data)
         self.data = data
         self.bag_owners = owners
+        self.bag_sections = sections
         # attributes are called by keys --> just adding new key will suffice
         self.owner_attributes = owner_attributes
 
@@ -179,11 +181,12 @@ class Bags(object):
         """ Creates a really deep copy """
         data = [[t for t in b] for b in self.data]
         bag_owners = [o for o in self.bag_owners]
+        bag_sections = [s for s in self.bag_sections]
         if self.owner_attributes is not None:
             owner_attributes = {attr: {token: value for token, value in value_by_token.items()}
                                 for attr, value_by_token in self.owner_attributes.items()}
 
-        return Bags(data, bag_owners, owner_attributes=owner_attributes)
+        return Bags(data, bag_owners, bag_sections, owner_attributes=owner_attributes)
 
     def __len__(self):
         return len(self.data)
@@ -201,6 +204,11 @@ class Bags(object):
     def numel(self):
         """ Computes the number of (non-zero) elements """
         return sum(map(len, self.data))
+
+
+    def get_sections(self):
+        """Returns the corresponding section title to the bag at index"""
+        return [s for s in self.bag_sections]
 
     def get_single_attribute(self, attribute):
         # TODO: rename to get_attribute() again? at least check for all other calls
@@ -339,7 +347,9 @@ class Bags(object):
             is_train = [int(y) < on_year for y in self.get_single_attribute('year')]
             train_data, test_data = split_by_mask(self.data, is_train)
             train_owners, test_owners = split_by_mask(self.bag_owners, is_train)
+            train_sections, test_sections = split_by_mask(self.bag_sections, is_train)
         else:
+            raise ValueError("split on params currently not supported")
             print("Splitting on params:", split_params)
             split = train_test_split(self.data, self.bag_owners, **split_params)
             train_data, test_data, train_owners, test_owners = split
@@ -349,8 +359,8 @@ class Bags(object):
                                 train_owners} for k in metadata_columns}
         test_attributes = {k: {owner: self.owner_attributes[k][owner] for owner in
                                test_owners} for k in metadata_columns}
-        train_set = Bags(train_data, train_owners, owner_attributes=train_attributes)
-        test_set = Bags(test_data, test_owners, owner_attributes=test_attributes)
+        train_set = Bags(train_data, train_owners, train_sections, owner_attributes=train_attributes)
+        test_set = Bags(test_data, test_owners, test_sections, owner_attributes=test_attributes)
         return train_set, test_set
 
     def train_val_test_split(self,test_year=None, val_year=None):
@@ -372,6 +382,7 @@ class Bags(object):
 
             train_data, val_data, test_data = triple_split(self.data, is_train, is_val)
             train_owners, val_owners, test_owners = triple_split(self.bag_owners, is_train, is_val)
+            train_sections, val_sections, test_sections = triple_split(self.bag_sections, is_train, is_val)
         else:
             raise NotImplementedError("not supported")
         print("{} train,{} val, {} test documents.".format(len(train_data),len(val_data), len(test_data)))
@@ -382,9 +393,9 @@ class Bags(object):
                                 val_owners} for k in metadata_columns}
         test_attributes = {k: {owner: self.owner_attributes[k][owner] for owner in
                                test_owners} for k in metadata_columns}
-        train_set = Bags(train_data, train_owners, owner_attributes=train_attributes)
-        val_set = Bags(val_data,val_owners, owner_attributes=val_attributes)
-        test_set = Bags(test_data, test_owners, owner_attributes=test_attributes)
+        train_set = Bags(train_data, train_owners, train_sections, owner_attributes=train_attributes)
+        val_set = Bags(val_data,val_owners, val_sections, owner_attributes=val_attributes)
+        test_set = Bags(test_data, test_owners, test_sections, owner_attributes=test_attributes)
         return train_set,val_set, test_set
 
     def build_vocab(self, min_count=None, max_features=None, apply=True):
@@ -404,7 +415,7 @@ class Bags(object):
         Applies `vocab` and returns `BagsWithVocab` instance
         """
         data_ix = filter_apply_vocab(self.data, vocab)
-        return BagsWithVocab(data_ix, vocab, owners=self.bag_owners,
+        return BagsWithVocab(data_ix, vocab, owners=self.bag_owners, sections=self.bag_sections,
                              attributes=self.owner_attributes)
 
     def prune_(self, min_elements=0):
@@ -412,14 +423,16 @@ class Bags(object):
         min_elements in data are retained """
         data = self.data
         owners = self.bag_owners
+        sections = self.bag_sections
         if min_elements:
-            data, owners = filter_length(data, min_elements, owners)
+            data, owners, sections = filter_length(data, min_elements, owners, sections)
             attributes = {k: {owner: self.owner_attributes[k][owner] for owner
                               in owners} for k in
                           list(self.owner_attributes.keys())}
         self.data = data
         self.bag_owners = owners
         self.owner_attributes = attributes
+        self.bag_sections = sections
         return self
 
     def inflate(self, factor):
@@ -451,8 +464,8 @@ class Bags(object):
 
 
 class BagsWithVocab(Bags):
-    def __init__(self, data, vocab, owners=None, attributes=None):
-        super(BagsWithVocab, self).__init__(data, owners,
+    def __init__(self, data, vocab, owners=None,sections=None, attributes=None):
+        super(BagsWithVocab, self).__init__(data, owners, sections=sections,
                                             owner_attributes=attributes)
         self.vocab = vocab
         # array of tokens which acts as reverse vocab
@@ -465,11 +478,12 @@ class BagsWithVocab(Bags):
         data = [[t for t in b] for b in self.data]
         vocab = {k: v for k, v in self.vocab.items()}
         bag_owners = [o for o in self.bag_owners]
+        bag_sections = [s for s in self.bag_sections]
         if self.owner_attributes is not None:
             attributes = {attr: {token: value for token, value in value_by_token.items()}
                           for attr, value_by_token in self.owner_attributes.items()}
 
-        return BagsWithVocab(data, vocab, owners=bag_owners,
+        return BagsWithVocab(data, vocab, owners=bag_owners, sections=bag_sections,
                              attributes=attributes)
 
     def build_vocab(self, min_count=None, max_features=None, apply=True):

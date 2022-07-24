@@ -9,7 +9,7 @@ OUTPUT_PREFIX=/media/nvme2n1/project_struct_cite/aae/test_s2orc_papers_old_all
 mkdir -p $OUTPUT_PREFIX
 for RUN in 1 #2 3
 do
-    for THRES in 2 5 10
+    for THRES in 1 2 5 10
     do
         for DROP in 0.2 0.5 0.8
         do

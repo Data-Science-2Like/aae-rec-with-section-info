@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DATASET=cite5
+DATASET=cite7
 DATASET_YEAR=2019
 
 OUTPUT_PREFIX=/media/nvme2n1/project_struct_cite/aae/test_s2orc_old_all

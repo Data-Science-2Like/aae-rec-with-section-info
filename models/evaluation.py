@@ -27,6 +27,7 @@ from models.aae import AAERecommender
 from utils.log import log
 
 import logging
+import joblib
 
 logging.basicConfig(level=logging.INFO)
 
@@ -429,13 +430,18 @@ class Evaluation(object):
 
             # TODO add saving and loading of model
             # if self.save_model:
-            recommender.save_model('trained', self.save_model)
+            if callable(getattr(recommender,'save_model',None)):
+                recommender.save_model('trained-' + repr(recommender) , self.save_model)
 
             # if self.save_model:
             #    pickle.dump(recommender, open(self.save_model, "wb"))
             #    log("Serialized to {}".format(self.save_model))
             t_1 = timer()
             total_result = None
+
+            candidate_pool_for_papers = dict()
+            test_sections = test_set.get_sections()
+            test_titles = test_set.get_single_attribute('title')
             if split_metrics_calculation:
                 for start in tqdm(range(0, len(test_set), batch_size)):
                     end = start + batch_size
@@ -446,6 +452,17 @@ class Evaluation(object):
                     else:
                         # dont hide that we are assuming an ndarray to be returned
                         y_pred = np.asarray(y_pred)
+
+                    # Save top k candidates to candidate pool struct
+                    batch_sections = test_sections[start:end]
+                    batch_titles = test_titles[start:end]
+
+                    for j in range(0,batch_size):
+                        p_sorted = sorted(range(len(y_pred)), key=lambda i: y_pred[j][i], reverse=True)
+                        p_keys = [test_set.index2token[i] for i in p_sorted[:2000]]
+                        if batch_titles[j] not in candidate_pool_for_papers.keys():
+                            candidate_pool_for_papers[batch_titles[j]] = dict()
+                        candidate_pool_for_papers[batch_titles[j]][batch_sections[j]] = p_keys
 
                     y_pred = remove_non_missing(y_pred, self.x_test[start:end], copy=True)
 
@@ -479,6 +496,14 @@ class Evaluation(object):
                     # dont hide that we are assuming an ndarray to be returned
                     y_pred = np.asarray(y_pred)
 
+                # Save top k candidates to candidate pool struct
+                for j in range(0,len(y_pred)):
+                    p_sorted = sorted(range(len(y_pred)), key=lambda i: y_pred[j][i], reverse=True)
+                    p_keys = [test_set.index2token[i] for i in p_sorted[:2000]]
+                    if test_titles[j] not in candidate_pool_for_papers.keys():
+                        candidate_pool_for_papers[test_titles[j]] = dict()
+                    candidate_pool_for_papers[test_titles[j]][test_sections[j]] = p_keys
+
                 # set likelihood of documents that are already cited to zero, so
                 # they don't influence evaluation
                 y_pred = remove_non_missing(y_pred, self.x_test, copy=True)
@@ -506,6 +531,12 @@ class Evaluation(object):
                 log("\nOverall time: {} seconds."
                     .format(timedelta(seconds=timer() - t_0)))
                 log('-' * 79)
+
+            # Now store the candidate lists
+            job_file = self.logfile.parent / Path(self.logfile.stem + "-" + str(recommender) + ".joblib")
+            joblib.dump(candidate_pool_for_papers,job_file)
+            
+
 
     def _train_search(self, config, checkpoint_dir=None, train=None, test=None, condition=None, test_condition=None):
 
