@@ -441,7 +441,7 @@ class Evaluation(object):
 
             candidate_pool_for_papers = dict()
             test_sections = test_set.get_sections()
-            test_titles = test_set.get_single_attribute('title')
+            test_titles = test_set.index2token #test_set.get_single_attribute('title')
             if split_metrics_calculation:
                 for start in tqdm(range(0, len(test_set), batch_size)):
                     end = start + batch_size
@@ -459,7 +459,7 @@ class Evaluation(object):
 
                     for j in range(0,batch_size):
                         p_sorted = sorted(range(len(y_pred)), key=lambda i: y_pred[j][i], reverse=True)
-                        p_keys = [test_set.index2token[i] for i in p_sorted[:2000]]
+                        p_keys = [test_set.index2token[i] for i in p_sorted[1:2001]]
                         if batch_titles[j] not in candidate_pool_for_papers.keys():
                             candidate_pool_for_papers[batch_titles[j]] = dict()
                         candidate_pool_for_papers[batch_titles[j]][batch_sections[j]] = p_keys
@@ -499,7 +499,7 @@ class Evaluation(object):
                 # Save top k candidates to candidate pool struct
                 for j in range(0,len(y_pred)):
                     p_sorted = sorted(range(len(y_pred)), key=lambda i: y_pred[j][i], reverse=True)
-                    p_keys = [test_set.index2token[i] for i in p_sorted[:2000]]
+                    p_keys = [test_set.index2token[i] for i in p_sorted[1:2001]]
                     if test_titles[j] not in candidate_pool_for_papers.keys():
                         candidate_pool_for_papers[test_titles[j]] = dict()
                     candidate_pool_for_papers[test_titles[j]][test_sections[j]] = p_keys
