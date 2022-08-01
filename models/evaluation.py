@@ -441,7 +441,7 @@ class Evaluation(object):
 
             candidate_pool_for_papers = dict()
             test_sections = test_set.get_sections()
-            test_titles = test_set.index2token #test_set.get_single_attribute('title')
+            test_titles = test_set.bag_owners.copy() #test_set.get_single_attribute('title')
             if split_metrics_calculation:
                 for start in tqdm(range(0, len(test_set), batch_size)):
                     end = start + batch_size
