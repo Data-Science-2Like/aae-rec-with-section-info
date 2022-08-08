@@ -337,6 +337,10 @@ class Evaluation(object):
         np.random.seed(seed)
 
         train_set, test_set, val_set = None, None, None
+
+        # build vocab over whole dataset but don't apply yet
+        full_vocab, _ = self.dataset.build_vocab(min_count= min_count,max_features=max_features,apply=False)
+
         if self.val_year > 0:
             train_set, val_set, test_set = self.dataset.train_val_test_split(val_year=self.val_year,
                                                                              test_year=self.year)
@@ -350,16 +354,43 @@ class Evaluation(object):
         log("Test:", test_set)
         log("Next Pruning:\n\tmin_count: {}\n\tmax_features: {}\n\tmin_elements: {}"
             .format(min_count, max_features, min_elements))
-        train_set = train_set.build_vocab(min_count=min_count,
-                                          max_features=max_features,
-                                          apply=True)
-        test_set = test_set.apply_vocab(train_set.vocab)
+        #train_set = train_set.build_vocab(min_count=min_count,
+        #                                   max_features=max_features,
+        #                                  apply=True)
+        # Don't calculate vocab over only train dataset
+        # Calculate vocab over whole dataset
+        # This way we don't lose citing papers which only have candidate papers in test split
+        # Note: This is a somewhat dirty fix
+        train_set = train_set.apply_vocab(full_vocab)
+        test_set = test_set.apply_vocab(full_vocab)
         if val_set is not None:
-            val_set = val_set.apply_vocab(train_set.vocab)
+            val_set = val_set.apply_vocab(full_vocab)
+
+
+        train_u = set(train_set.bag_owners)
+        train_v = set([train_set.bag_owners[i] for i in range(0, len(train_set.bag_owners)) if len(train_set.data[i]) > 0])
+        print(f"Training set contains {len(train_u)} papers with {len(train_v)} citing papers")
+
+        test_u = set(test_set.bag_owners)
+        test_v = set(
+            [test_set.bag_owners[i] for i in range(0, len(test_set.bag_owners)) if len(test_set.data[i]) > 0])
+        print(f"Test set contains {len(test_u)} papers with {len(test_v)} citing papers")
+
 
         # Train and test sets are now BagsWithVocab
         train_set.prune_(min_elements=min_elements)
         test_set.prune_(min_elements=min_elements)
+
+        train_u = set(train_set.bag_owners)
+        train_v = set(
+            [train_set.bag_owners[i] for i in range(0, len(train_set.bag_owners)) if len(train_set.data[i]) > 0])
+        print(f"Training set contains {len(train_u)} papers with {len(train_v)} citing papers after pruning")
+
+        test_u = set(test_set.bag_owners)
+        test_v = set(
+            [test_set.bag_owners[i] for i in range(0, len(test_set.bag_owners)) if len(test_set.data[i]) > 0])
+        print(f"Test set contains {len(test_u)} papers with {len(test_v)} citing papers after pruning")
+
         if val_set is not None:
             val_set.prune_(min_elements=min_elements)
         log("Train:", train_set)

@@ -121,6 +121,9 @@ def unpack_papers(papers, aggregate=None,end_year=-1):
     format. It is not mandatory that papers are sorted.
     """
     # Assume track_uri is primary key for track
+    EXTENDED_DEBUGGING = True
+
+
     if aggregate is not None:
         for attr in aggregate:
             assert attr in PAPER_INFO
@@ -142,6 +145,12 @@ def unpack_papers(papers, aggregate=None,end_year=-1):
         sections_list.append(paper["section_title"])
         # Put all ids of cited papers in here
         try:
+            if not paper['is_citing_paper']:
+                assert len(paper['references']) == 0
+            # Can't say that because split is section_wise
+            #else:
+                #assert len(paper['references']) > 0
+
             # References may be missing
             bags_of_refs.append(paper["references"])
             if len(paper["references"]) > 0:
@@ -335,8 +344,10 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     log("Whole dataset:")
     log(bags)
 
-    u = len(set(bags.owner_attributes['title']))
-    log(f"Keeping {u} papers")
+    u = set(bags.bag_owners)
+    v = set([bags.bag_owners[i] for i in range(0,len(bags.bag_owners)) if len(bags.data[i]) > 0])
+    log(f"Keeping {len(u)} papers")
+    log(f"Citing papers: {len(v)}")
 
     evaluation = Evaluation(bags, year,conditions=CONDITIONS, logfile=Path(outfile), eval_each=eval_each)
 
