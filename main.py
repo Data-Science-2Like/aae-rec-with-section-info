@@ -183,7 +183,7 @@ def unpack_papers(papers, aggregate=None,end_year=-1):
         except KeyError:
             venue[paper["id"]] = ""
         try:
-            sections[paper["id"]] = paper["section_title"]
+            sections.setdefault(paper["id"],set()).add(paper["section_title"])
         except KeyError:
             sections[paper["id"]] = []
 
@@ -213,6 +213,8 @@ def unpack_papers(papers, aggregate=None,end_year=-1):
         "Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}, year={}, sections={} one-reference={}"
         .format(ref_cnt / len(papers), title_cnt / len(papers), author_cnt / len(papers), venue_cnt / len(papers),
                 year_cnt / len(papers), section_cnt / len(papers), one_ref_cnt / len(papers)))
+
+    sections = {k : list(v) for k,v in sections.items()}
 
     # bag_of_refs and ids should have corresponding indices
     # In side info the id is the key

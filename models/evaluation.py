@@ -470,6 +470,10 @@ class Evaluation(object):
             t_1 = timer()
             total_result = None
 
+            citing_papers = set()
+            with open('citing_papers_v7.pickle','rb') as f:
+                citing_papers = pickle.load(f)
+
             candidate_pool_for_papers = dict()
             test_sections = test_set.get_sections()
             test_titles = test_set.bag_owners.copy() #test_set.get_single_attribute('title')
@@ -491,9 +495,11 @@ class Evaluation(object):
                     for j in range(0,batch_size):
                         p_sorted = sorted(range(len(y_pred)), key=lambda i: y_pred[j][i], reverse=True)
                         p_keys = [test_set.index2token[i] for i in p_sorted[1:2001]]
-                        if batch_titles[j] not in candidate_pool_for_papers.keys():
+                        if batch_titles[j] not in candidate_pool_for_papers.keys() and batch_titles[j] in citing_papers:
                             candidate_pool_for_papers[batch_titles[j]] = dict()
-                        candidate_pool_for_papers[batch_titles[j]][batch_sections[j]] = p_keys
+
+                        if batch_titles[j] in citing_papers:
+                            candidate_pool_for_papers[batch_titles[j]][batch_sections[j]] = p_keys
 
                     y_pred = remove_non_missing(y_pred, self.x_test[start:end], copy=True)
 
@@ -531,9 +537,11 @@ class Evaluation(object):
                 for j in range(0,len(y_pred)):
                     p_sorted = sorted(range(len(y_pred)), key=lambda i: y_pred[j][i], reverse=True)
                     p_keys = [test_set.index2token[i] for i in p_sorted[1:2001]]
-                    if test_titles[j] not in candidate_pool_for_papers.keys():
+                    if test_titles[j] not in candidate_pool_for_papers.keys() and test_titles[j] in citing_papers:
                         candidate_pool_for_papers[test_titles[j]] = dict()
-                    candidate_pool_for_papers[test_titles[j]][test_sections[j]] = p_keys
+                    
+                    if test_titles[j] in citing_papers:
+                        candidate_pool_for_papers[test_titles[j]][test_sections[j]] = p_keys
 
                 # set likelihood of documents that are already cited to zero, so
                 # they don't influence evaluation
