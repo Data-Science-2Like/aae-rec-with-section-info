@@ -1,4 +1,3 @@
-
 import json
 
 SYNONYM_DICT = {
@@ -71,8 +70,26 @@ SYNONYM_DICT = {
     "introduction and background": "introduction",
     "proposed methodology": "method",
     "review of previous method": "related work",
-    "discussion and outlook": "discussion"
+    "discussion and outlook": "discussion",
+    'results and discussions': 'discussion',
+    'conclusions': 'conclusion',
+    'experiments': 'experiment',
+    'results and discussion': 'discussion',
+    'conclusions and future work': 'conclusion',
+    'limitations': 'discussion',
+    'implementation details': 'method',
+    'discussions': 'discussion',
+    'experiments and results': 'experiment',
+    'abstract': 'abstract',
+    'results and analysis': 'experiment',
+    'results': 'experiment',
+    'methods': 'method',
+    'material and methods': 'method',
+    'related works': 'related work',
+    'experimental results': 'experiment',
+    'discussion and conclusions': 'conclusion'
 }
+
 
 #                         'paper_id': metadata['paper_id'],
 #                         'section_title': sec['section'],
@@ -83,12 +100,12 @@ SYNONYM_DICT = {
 #                         'outgoing_citations_in_section' : cits_in_section
 
 
-def rename_key(data, old : str, new :str) -> None:
+def rename_key(data, old: str, new: str) -> None:
     for entry in data:
         entry[new] = entry.pop(old)
 
 
-def load_citeworth(path, use_synonym_dict = True, section_divided = True):
+def load_citeworth(path, use_synonym_dict=True, section_divided=True):
     """ Loads a single file """
     print("Loading citworth data from", path)
     data = list()
@@ -96,30 +113,36 @@ def load_citeworth(path, use_synonym_dict = True, section_divided = True):
         for i, l in enumerate(f):
             data.append(json.loads(l.strip()))
 
-    rename_key(data,'paper_title','title')
+    rename_key(data, 'paper_title', 'title')
     # rename_key(data,'paper_authors','authors')
-    rename_key(data, 'paper_year','year')
+    rename_key(data, 'paper_year', 'year')
     if section_divided:
         rename_key(data, 'outgoing_citations_in_paragraph', 'references')
     else:
         rename_key(data, 'outgoing_citations', 'references')
 
-    rename_key(data,'paper_id','id')
+    rename_key(data, 'paper_id', 'id')
 
     # apply synonym dict
     if use_synonym_dict:
+        missing_keys = set()
         for entry in data:
-            entry['section_title'] = SYNONYM_DICT[entry['section_title'].lower()]
-
+            try:
+                entry['section_title'] = SYNONYM_DICT[entry['section_title'].lower()]
+            except KeyError as e:
+                missing_keys.add(str(e))
+        if len(missing_keys) > 0:
+            print("Missing Keys")
+            for m in missing_keys:
+                print(m)
     for entry in data:
         if entry['year'] and entry['year'] != None:
             entry['year'] = int(entry['year'])
 
     # get all ids
+
     all_ids = []
     for entry in data:
         all_ids.append(entry['id'])
-
-
 
     return data
