@@ -139,6 +139,8 @@ def unpack_papers(papers, aggregate=None,end_year=-1):
         if 0 < end_year <= int(paper['year']):
             continue
 
+        # TODO skip empty entries but how
+
         # Extract ids
         ids.append(paper["id"])
 
@@ -269,8 +271,8 @@ def main(year, dataset, min_count=None, outfile=None, drop=1,
     if baselines:
         # Models without metadata
         BASELINES = [
-            #BM25Baseline(),
-            #RandomBaseline(),
+            BM25Baseline(),
+            RandomBaseline(),
             MostPopular(),
             Countbased()
             # SVDRecommender(1000, use_title=False)

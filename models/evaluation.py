@@ -494,7 +494,8 @@ class Evaluation(object):
 
                     for j in range(0,batch_size):
                         p_sorted = sorted(range(len(y_pred)), key=lambda i: y_pred[j][i], reverse=True)
-                        p_keys = [test_set.index2token[i] for i in p_sorted[1:2001]]
+                        p_keys = [test_set.index2token[i] for i in p_sorted if test_set.index2token[i] is not None]
+                        p_keys = p_keys[:2000]
                         if batch_titles[j] not in candidate_pool_for_papers.keys() and batch_titles[j] in citing_papers:
                             candidate_pool_for_papers[batch_titles[j]] = dict()
 
@@ -536,7 +537,8 @@ class Evaluation(object):
                 # Save top k candidates to candidate pool struct
                 for j in range(0,len(y_pred)):
                     p_sorted = sorted(range(len(y_pred)), key=lambda i: y_pred[j][i], reverse=True)
-                    p_keys = [test_set.index2token[i] for i in p_sorted[1:2001]]
+                    p_keys = [test_set.index2token[i] for i in p_sorted if test_set.index2token[i] is not None]
+                    p_keys = p_keys[:2000]
                     if test_titles[j] not in candidate_pool_for_papers.keys() and test_titles[j] in citing_papers:
                         candidate_pool_for_papers[test_titles[j]] = dict()
                     
