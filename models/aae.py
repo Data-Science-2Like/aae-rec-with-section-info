@@ -689,6 +689,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.disc.zero_grad()
 
     def save_model(self, folder='prefetcher', filename='test'):
+        return
         if not os.path.exists(folder):
             os.mkdir(folder)
 
