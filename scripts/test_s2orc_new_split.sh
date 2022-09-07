@@ -1,15 +1,15 @@
 #!/bin/bash
 
-DATASET=cite5
+DATASET=cite7
 DATASET_YEAR=2020
 
-OUTPUT_PREFIX=/media/nvme2n1/project_struct_cite/aae/test_s2orc_new
+OUTPUT_PREFIX=/media/nvme2n1/project_struct_cite/aae/test_s2orc_new_split_full_vocab
 
 #THRES=1
 mkdir -p $OUTPUT_PREFIX
 for RUN in 1 #2 3
 do
-    for THRES in 2 5 #3 4 5 #10 15 20 25
+    for THRES in 1 2 5 #3 4 5 #10 15 20 25
     do
         for DROP in 0.2 0.5 0.8
         do
@@ -21,7 +21,7 @@ done
 
 for RUN in 1 #2 3
 do
-    for THRES in 2 5 #3 4 5
+    for THRES in 1 2 5 #3 4 5
     do
         for DROP in 0.2 0.5 0.8
         do

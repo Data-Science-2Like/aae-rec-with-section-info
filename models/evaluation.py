@@ -459,14 +459,12 @@ class Evaluation(object):
             # torch.save(recommender.state_dict(), "1epoch_test.model")
             split_metrics_calculation = False
 
-            # TODO add saving and loading of model
-            # if self.save_model:
+            # save model
             if callable(getattr(recommender,'save_model',None)):
-                recommender.save_model('trained-' + repr(recommender) , self.save_model)
 
-            # if self.save_model:
-            #    pickle.dump(recommender, open(self.save_model, "wb"))
-            #    log("Serialized to {}".format(self.save_model))
+                m_path = self.logfile.parent / Path(self.logfile.stem + "-trained-" + str(recommender))
+                recommender.save_model(m_path , self.save_model)
+
             t_1 = timer()
             total_result = None
 
@@ -495,12 +493,13 @@ class Evaluation(object):
                     for j in range(0,batch_size):
                         p_sorted = sorted(range(len(y_pred)), key=lambda i: y_pred[j][i], reverse=True)
                         p_keys = [test_set.index2token[i] for i in p_sorted if test_set.index2token[i] is not None]
-                        p_keys = p_keys[:2000]
-                        if batch_titles[j] not in candidate_pool_for_papers.keys() and batch_titles[j] in citing_papers:
-                            candidate_pool_for_papers[batch_titles[j]] = dict()
+                        if len(p_keys) >= 2000:
+                            p_keys = p_keys[:2000]
+                            if batch_titles[j] not in candidate_pool_for_papers.keys() and batch_titles[j] in citing_papers:
+                                candidate_pool_for_papers[batch_titles[j]] = dict()
 
-                        if batch_titles[j] in citing_papers:
-                            candidate_pool_for_papers[batch_titles[j]][batch_sections[j]] = p_keys
+                            if batch_titles[j] in citing_papers:
+                                candidate_pool_for_papers[batch_titles[j]][batch_sections[j]] = p_keys
 
                     y_pred = remove_non_missing(y_pred, self.x_test[start:end], copy=True)
 
@@ -538,12 +537,13 @@ class Evaluation(object):
                 for j in range(0,len(y_pred)):
                     p_sorted = sorted(range(len(y_pred)), key=lambda i: y_pred[j][i], reverse=True)
                     p_keys = [test_set.index2token[i] for i in p_sorted if test_set.index2token[i] is not None]
-                    p_keys = p_keys[:2000]
-                    if test_titles[j] not in candidate_pool_for_papers.keys() and test_titles[j] in citing_papers:
-                        candidate_pool_for_papers[test_titles[j]] = dict()
+                    if len(p_keys) >= 2000:
+                        p_keys = p_keys[:2000]
+                        if test_titles[j] not in candidate_pool_for_papers.keys() and test_titles[j] in citing_papers:
+                            candidate_pool_for_papers[test_titles[j]] = dict()
                     
-                    if test_titles[j] in citing_papers:
-                        candidate_pool_for_papers[test_titles[j]][test_sections[j]] = p_keys
+                        if test_titles[j] in citing_papers:
+                            candidate_pool_for_papers[test_titles[j]][test_sections[j]] = p_keys
 
                 # set likelihood of documents that are already cited to zero, so
                 # they don't influence evaluation
