@@ -22,3 +22,4 @@ CITE5_PAPERS_PATH = Path("./citeworth/aae_recommender_with_section_info_v5_paper
 AAN_PATH = Path("./aan/2014/")
 
 CITE7_PATH = Path("./citeworth/aae_recommender_with_section_info_v7.jsonl")
+CITE7_PAPERS_PATH = Path("./citeworth/aae_recommender_with_section_info_v7_papers.jsonl")

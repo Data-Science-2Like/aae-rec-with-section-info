@@ -4,7 +4,7 @@ DATASET=cite7
 DATASET_YEAR=2019
 
 OUTPUT_PREFIX=/media/nvme2n1/project_struct_cite/aae/test_s2orc_old_all_final_vocab
-GPU=2
+GPU=1
 
 #THRES=1
 mkdir -p $OUTPUT_PREFIX
